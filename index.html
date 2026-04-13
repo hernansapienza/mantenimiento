@@ -3,54 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Fiat Argo - Control de Mantenimiento</title>
+    <title>Control de Mantenimiento - Fiat Argo</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f8f9fa; }
         .sidebar { height: 100vh; background: #212529; color: white; padding: 20px; position: fixed; width: 250px; }
         .main-content { margin-left: 260px; padding: 20px; }
-        .card-alert { border-left: 5px solid #dc3545; } /* Rojo para alertas */
+        .section { display: none; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .section.active { display: block; }
         @media (max-width: 768px) {
             .sidebar { position: relative; width: 100%; height: auto; }
             .main-content { margin-left: 0; }
         }
+        #loading { display: none; color: #0d6efd; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
-    <h4>🚗 Mi Vehículo</h4>
+    <h4>🚗 AC 064 PP</h4>
     <hr>
     <nav class="nav flex-column">
         <a class="nav-link text-white" href="#" onclick="showSection('dashboard')">🏠 Dashboard</a>
         <a class="nav-link text-white" href="#" onclick="showSection('mantenimiento')">🛠️ Mantenimiento</a>
         <a class="nav-link text-white" href="#" onclick="showSection('gastos')">💸 Gastos Corrientes</a>
-        <a class="nav-link text-white" href="#" onclick="showSection('vtv')">📄 VTV</a>
+        <a class="nav-link text-white" href="#" onclick="showSection('vtv')">📄 VTV y Doc.</a>
     </nav>
 </div>
 
 <div class="main-content">
-    <div id="dashboard" class="section">
-        <h2>Hola Hernán 👋</h2>
-        <p>Estado de tu <strong>Fiat Argo (AC 064 PP)</strong></p>
-        
-        <div class="card mb-4">
+    
+    <div id="dashboard" class="section active">
+        <h2>Dashboard</h2>
+        <p>Control de estado del vehículo.</p>
+        <div class="card mb-4 border-primary">
             <div class="card-body">
-                <label>Kilometraje Actual:</label>
-                <input type="number" id="kmActual" class="form-control form-control-lg" placeholder="Ej: 75000">
+                <label class="form-label fw-bold">Actualizar Kilometraje:</label>
+                <div class="input-group">
+                    <input type="number" id="kmActual" class="form-control" placeholder="Ej: 75000">
+                    <button class="btn btn-primary" onclick="calcularAlertas()">Verificar Alertas</button>
+                </div>
+                <small class="text-muted">Ingresa el KM actual para ver si hay mantenimientos pendientes.</small>
             </div>
         </div>
-
         <div id="alertasContainer">
-            </div>
+            <div class="alert alert-info">Aún no hay alertas calculadas. Actualiza el kilometraje arriba.</div>
+        </div>
     </div>
 
-    <div id="mantenimiento" class="section" style="display:none;">
-        <h2>Registrar Mantenimiento</h2>
-        <form id="formManto">
+    <div id="mantenimiento" class="section">
+        <h2>🛠️ Registrar Mantenimiento</h2>
+        <form id="formMantenimiento" onsubmit="enviarDatos(event, 'Mantenimiento')">
             <div class="mb-3">
-                <label>Categoría:</label>
-                <select class="form-select" id="catManto">
+                <label class="form-label">Categoría:</label>
+                <select class="form-select" id="m_categoria" required>
+                    <option value="">Selecciona una opción...</option>
                     <option value="Fluidos y Filtros">🛢️ Fluidos y Filtros</option>
                     <option value="Encendido y Batería">🔋 Encendido y Batería</option>
                     <option value="Frenos">🛑 Frenos</option>
@@ -59,22 +66,191 @@
                     <option value="Otros">🔧 Otros</option>
                 </select>
             </div>
-            <button type="button" class="btn btn-primary" onclick="enviarAlSheet()">Guardar Registro</button>
+            <div class="mb-3">
+                <label class="form-label">Detalle / Subcategoría:</label>
+                <input type="text" class="form-control" id="m_subcategoria" placeholder="Ej: Aceite 5W30 y Filtro" required>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Fecha del Servicio:</label>
+                    <input type="date" class="form-control" id="m_fecha" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Kilometraje del Servicio:</label>
+                    <input type="number" class="form-control" id="m_km" required>
+                </div>
+            </div>
+            <div class="row bg-light p-2 rounded mb-3">
+                <p class="mb-2 fw-bold text-secondary">¿Cuándo toca el próximo control?</p>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Próx. Revisión (Km):</label>
+                    <input type="number" class="form-control" id="m_prox_km">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Próx. Revisión (Fecha):</label>
+                    <input type="date" class="form-control" id="m_prox_fecha">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-success w-100">Guardar Mantenimiento</button>
         </form>
     </div>
+
+    <div id="gastos" class="section">
+        <h2>💸 Gastos Corrientes</h2>
+        <form id="formGastos" onsubmit="enviarDatos(event, 'Gastos_Corrientes')">
+            <div class="mb-3">
+                <label class="form-label">Categoría:</label>
+                <select class="form-select" id="g_categoria" required>
+                    <option value="Seguro">Seguro</option>
+                    <option value="Patente">Patente</option>
+                    <option value="Cochera">Cochera / Otros</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Período / Subcategoría:</label>
+                <input type="text" class="form-control" id="g_subcategoria" placeholder="Ej: Cuota Abril 2026" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Fecha de Pago:</label>
+                <input type="date" class="form-control" id="g_fecha" required>
+            </div>
+            <button type="submit" class="btn btn-success w-100">Guardar Gasto</button>
+        </form>
+    </div>
+
+    <div id="vtv" class="section">
+        <h2>📄 VTV y Documentación</h2>
+        <form id="formVTV" onsubmit="enviarDatos(event, 'VTV_Documentacion')">
+            <div class="mb-3">
+                <label class="form-label">Trámite:</label>
+                <select class="form-select" id="v_categoria" required>
+                    <option value="VTV">VTV</option>
+                    <option value="Grabado de Autopartes">Grabado de Autopartes</option>
+                    <option value="Oblea GNC">Oblea GNC (Si aplica)</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Fecha de Realización:</label>
+                <input type="date" class="form-control" id="v_fecha" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Kilometraje al realizarlo:</label>
+                <input type="number" class="form-control" id="v_km">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Vencimiento (Próx. Fecha):</label>
+                <input type="date" class="form-control" id="v_prox_fecha" required>
+            </div>
+            <button type="submit" class="btn btn-success w-100">Guardar Documento</button>
+        </form>
+    </div>
+
+    <div id="loading">Enviando datos a Google Sheets, por favor espera...</div>
+
 </div>
 
 <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbylv-Tg2wBfR-Ngr-M-hFx3apnTRf-PCUelQfkiKVA6XG7GhZXn37PWbj2zNQ1HFjxX/exec";
+    // === REEMPLAZA ESTA URL CON LA TUYA DE APPS SCRIPT ===
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbylv-Tg2wBfR-Ngr-M-hFx3apnTRf-PCUelQfkiKVA6XG7GhZXn37PWbj2zNQ1HFjxX/exec"; 
+    
+    // Identificador fijo para este auto por ahora
+    const ID_VEHICULO = "V-01"; 
 
     function showSection(id) {
-        document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-        document.getElementById(id).style.display = 'block';
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
     }
 
-    async function enviarAlSheet() {
-        // Lógica para enviar los datos a tu Google Apps Script
-        alert("Enviando datos...");
+    async function enviarDatos(event, nombreHoja) {
+        event.preventDefault(); // Evita que la página se recargue
+        document.getElementById('loading').style.display = 'block';
+
+        // Generamos un ID único para el servicio basado en la fecha/hora actual
+        const idServicio = "S-" + Date.now(); 
+        let arrayValores = [];
+
+        // Armamos el paquete de datos según la hoja que lo solicita
+        // Respetando EXACTAMENTE el orden de las columnas de tu Sheet
+        if(nombreHoja === 'Mantenimiento') {
+            arrayValores = [
+                idServicio, 
+                ID_VEHICULO, 
+                document.getElementById('m_categoria').value,
+                document.getElementById('m_subcategoria').value,
+                document.getElementById('m_fecha').value,
+                document.getElementById('m_km').value,
+                document.getElementById('m_prox_km').value, // Agregado por vos
+                document.getElementById('m_prox_fecha').value // Agregado por vos
+            ];
+        } else if (nombreHoja === 'Gastos_Corrientes') {
+            arrayValores = [
+                idServicio,
+                ID_VEHICULO,
+                document.getElementById('g_categoria').value,
+                document.getElementById('g_subcategoria').value,
+                document.getElementById('g_fecha').value
+            ];
+        } else if (nombreHoja === 'VTV_Documentacion') {
+            arrayValores = [
+                idServicio,
+                ID_VEHICULO,
+                document.getElementById('v_categoria').value,
+                document.getElementById('v_fecha').value,
+                document.getElementById('v_km').value,
+                document.getElementById('v_prox_fecha').value // Agregado por vos
+            ];
+        }
+
+        const payload = {
+            hoja: nombreHoja,
+            valores: arrayValores
+        };
+
+        try {
+            // Enviamos los datos usando Fetch API (POST)
+            const response = await fetch(GAS_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload),
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8',
+                }
+            });
+            
+            const result = await response.json();
+            
+            if(result.result === "success") {
+                alert("✅ ¡Registro guardado exitosamente en Google Sheets!");
+                event.target.reset(); // Limpia el formulario
+            } else {
+                alert("❌ Error del servidor: " + result.message);
+            }
+        } catch (error) {
+            alert("❌ Ocurrió un error de conexión. Verifica la URL de Apps Script.");
+            console.error(error);
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    function calcularAlertas() {
+        const kmInput = document.getElementById('kmActual').value;
+        const container = document.getElementById('alertasContainer');
+        
+        if(!kmInput) {
+            alert("Por favor, ingresa un kilometraje válido.");
+            return;
+        }
+
+        // Aquí irá la lógica de lectura (GET) más adelante. 
+        // Por ahora dejamos una respuesta visual para que veas cómo funcionará.
+        container.innerHTML = `
+            <div class="alert alert-warning border-warning">
+                <strong>Simulación de Alerta:</strong> Al llegar a los ${kmInput} km el sistema revisará tu Sheet. Si, por ejemplo, cargaste un cambio de aceite con Próx Revisión a los ${(parseInt(kmInput) + 500)} km, aparecerá aquí.
+            </div>
+            <div class="alert alert-success border-success">
+                <strong>Simulación VTV:</strong> Sistema conectando a la base de datos...
+            </div>
+        `;
     }
 </script>
 
