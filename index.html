@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Fiat Argo - Control de Mantenimiento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .sidebar { height: 100vh; background: #212529; color: white; padding: 20px; position: fixed; width: 250px; }
+        .main-content { margin-left: 260px; padding: 20px; }
+        .card-alert { border-left: 5px solid #dc3545; } /* Rojo para alertas */
+        @media (max-width: 768px) {
+            .sidebar { position: relative; width: 100%; height: auto; }
+            .main-content { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h4>🚗 Mi Vehículo</h4>
+    <hr>
+    <nav class="nav flex-column">
+        <a class="nav-link text-white" href="#" onclick="showSection('dashboard')">🏠 Dashboard</a>
+        <a class="nav-link text-white" href="#" onclick="showSection('mantenimiento')">🛠️ Mantenimiento</a>
+        <a class="nav-link text-white" href="#" onclick="showSection('gastos')">💸 Gastos Corrientes</a>
+        <a class="nav-link text-white" href="#" onclick="showSection('vtv')">📄 VTV</a>
+    </nav>
+</div>
+
+<div class="main-content">
+    <div id="dashboard" class="section">
+        <h2>Hola Hernán 👋</h2>
+        <p>Estado de tu <strong>Fiat Argo (AC 064 PP)</strong></p>
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <label>Kilometraje Actual:</label>
+                <input type="number" id="kmActual" class="form-control form-control-lg" placeholder="Ej: 75000">
+            </div>
+        </div>
+
+        <div id="alertasContainer">
+            </div>
+    </div>
+
+    <div id="mantenimiento" class="section" style="display:none;">
+        <h2>Registrar Mantenimiento</h2>
+        <form id="formManto">
+            <div class="mb-3">
+                <label>Categoría:</label>
+                <select class="form-select" id="catManto">
+                    <option value="Fluidos y Filtros">🛢️ Fluidos y Filtros</option>
+                    <option value="Encendido y Batería">🔋 Encendido y Batería</option>
+                    <option value="Frenos">🛑 Frenos</option>
+                    <option value="Rodado y Suspensión">🛞 Rodado y Suspensión</option>
+                    <option value="Transmisión">⚙️ Transmisión</option>
+                    <option value="Otros">🔧 Otros</option>
+                </select>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="enviarAlSheet()">Guardar Registro</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbylv-Tg2wBfR-Ngr-M-hFx3apnTRf-PCUelQfkiKVA6XG7GhZXn37PWbj2zNQ1HFjxX/exec";
+
+    function showSection(id) {
+        document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+        document.getElementById(id).style.display = 'block';
+    }
+
+    async function enviarAlSheet() {
+        // Lógica para enviar los datos a tu Google Apps Script
+        alert("Enviando datos...");
+    }
+</script>
+
+</body>
+</html>
