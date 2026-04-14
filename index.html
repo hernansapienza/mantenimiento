@@ -17,8 +17,11 @@
         .section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .btn-success { background-color: #28a745; border: none; padding: 10px 20px; font-weight: 600; }
-        .status-badge { font-size: 0.85rem; padding: 5px 10px; border-radius: 20px; }
+        .btn-success { background-color: #28a745; border: none; font-weight: 600; }
+        .btn-delete { color: #dc3545; background: none; border: none; font-weight: bold; cursor: pointer; padding: 0 5px; }
+        .btn-delete:hover { color: #a71d2a; transform: scale(1.2); }
+        .small-list { font-size: 0.85rem; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; }
+        .small-list:last-child { border-bottom: none; }
         #loadingOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 2000; text-align: center; padding-top: 20%; }
         @media (max-width: 768px) {
             .sidebar { height: auto; width: 100%; position: relative; padding: 10px; }
@@ -30,7 +33,7 @@
 
 <div id="loadingOverlay">
     <div class="spinner-border text-primary" role="status"></div>
-    <p class="mt-2 fw-bold">Procesando con Google Sheets...</p>
+    <p class="mt-2 fw-bold" id="loadingText">Procesando con Google Sheets...</p>
 </div>
 
 <div class="sidebar">
@@ -49,7 +52,7 @@
     <div id="dashboard" class="section active">
         <h2 class="mb-4">Estado General</h2>
         
-        <h5 class="mb-3 text-secondary">Últimos Trabajos Realizados</h5>
+        <h5 class="mb-3 text-secondary">Últimos 3 Trabajos Realizados</h5>
         <div class="row" id="dashboardCards">
             <div class="col-12 text-center text-muted small"><div class="spinner-border spinner-border-sm"></div> Cargando resumen...</div>
         </div>
@@ -58,15 +61,16 @@
 
         <div class="card mb-4 border-primary">
             <div class="card-body">
-                <h5 class="card-title text-primary">Control de Kilometraje</h5>
-                <div class="input-group mb-3 mt-3">
-                    <input type="number" id="kmInput" class="form-control form-control-lg" placeholder="Ingresá los km actuales (Ej: 75200)">
+                <h5 class="card-title text-primary">Control de Alertas (Km y Fechas)</h5>
+                <p class="text-muted small mb-2">Último kilometraje ingresado: <strong id="ultimoKmGuardado">-</strong> km</p>
+                <div class="input-group mb-3">
+                    <input type="number" id="kmInput" class="form-control form-control-lg" placeholder="Actualizar km...">
                     <button class="btn btn-primary fw-bold" onclick="analizarAlertas()">Chequear Vencimientos</button>
                 </div>
             </div>
         </div>
         <div id="alertasBox">
-            <div class="alert alert-secondary text-center">Ingresá los kilómetros para ver el estado de mantenimiento.</div>
+            <div class="alert alert-secondary text-center">Analizando el estado...</div>
         </div>
     </div>
 
@@ -74,9 +78,9 @@
         <h2 class="mb-4">🛠️ Mantenimiento</h2>
         <div class="card mb-4">
             <div class="card-body">
-                <form id="formMantenimiento" onsubmit="procesarEnvio(event, 'Mantenimiento')">
+                <form onsubmit="procesarEnvio(event, 'Mantenimiento')">
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Categoría</label>
                             <select id="m_cat" class="form-select" required>
                                 <option value="Batería">🔋 Batería</option>
@@ -87,15 +91,19 @@
                                 <option value="Otros">🔧 Otros</option>
                             </select>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">Detalle / Subcategoría</label>
-                            <input type="text" id="m_sub" class="form-control" placeholder="Ej: Aceite Sintético 5W30" required>
+                        <div class="col-md-5 mb-3">
+                            <label class="form-label fw-bold">Detalle</label>
+                            <input type="text" id="m_sub" class="form-control" placeholder="Ej: Aceite 5W30" required>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label fw-bold text-success">Costo ($)</label>
+                            <input type="number" id="m_costo" class="form-control border-success" placeholder="Ej: 85000">
+                        </div>
+                        <div class="col-md-6 mb-3">
                             <label class="form-label fw-bold">Fecha</label>
                             <input type="date" id="m_fec" class="form-control" required>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-6 mb-3">
                             <label class="form-label fw-bold">Kilometraje</label>
                             <input type="number" id="m_km" class="form-control" required>
                         </div>
@@ -110,17 +118,16 @@
                             <input type="date" id="m_prox_fec" class="form-control border-primary">
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-success w-100">Registrar Mantenimiento</button>
+                    <button type="submit" class="btn btn-success w-100">Guardar Mantenimiento</button>
                 </form>
             </div>
         </div>
         <div class="card">
-            <div class="card-header bg-white fw-bold">Historial Reciente</div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
                         <thead class="table-light">
-                            <tr><th>Fecha</th><th>Categoría</th><th>Detalle</th><th>Km</th><th>Próx. Km</th></tr>
+                            <tr><th>Fecha</th><th>Detalle</th><th>Km</th><th>Próx. Fecha</th><th>Costo</th><th></th></tr>
                         </thead>
                         <tbody id="tabla_Mantenimiento"></tbody>
                     </table>
@@ -133,9 +140,9 @@
         <h2 class="mb-4">💸 Gastos Corrientes</h2>
         <div class="card mb-4">
             <div class="card-body">
-                <form id="formGastos" onsubmit="procesarEnvio(event, 'Gastos_Corrientes')">
+                <form onsubmit="procesarEnvio(event, 'Gastos_Corrientes')">
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Categoría</label>
                             <select id="g_cat" class="form-select" required>
                                 <option value="Seguro">🛡️ Seguro</option>
@@ -143,26 +150,29 @@
                                 <option value="Cochera">🏠 Cochera</option>
                             </select>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-5 mb-3">
                             <label class="form-label fw-bold">Mes / Detalle</label>
                             <input type="text" id="g_sub" class="form-control" placeholder="Ej: Cuota 04/26" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label fw-bold text-success">Importe Pagado ($)</label>
+                            <input type="number" id="g_costo" class="form-control border-success" required>
                         </div>
                         <div class="col-md-12 mb-3">
                             <label class="form-label fw-bold">Fecha de Pago</label>
                             <input type="date" id="g_fec" class="form-control" required>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-success w-100">Registrar Gasto</button>
+                    <button type="submit" class="btn btn-success w-100">Registrar Pago</button>
                 </form>
             </div>
         </div>
         <div class="card">
-            <div class="card-header bg-white fw-bold">Historial de Gastos</div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
                         <thead class="table-light">
-                            <tr><th>Fecha</th><th>Categoría</th><th>Detalle</th></tr>
+                            <tr><th>Fecha</th><th>Categoría</th><th>Detalle</th><th>Importe</th><th></th></tr>
                         </thead>
                         <tbody id="tabla_Gastos_Corrientes"></tbody>
                     </table>
@@ -175,21 +185,33 @@
         <h2 class="mb-4">📄 VTV y Documentación</h2>
         <div class="card mb-4">
             <div class="card-body">
-                <form id="formVTV" onsubmit="procesarEnvio(event, 'VTV_Documentacion')">
+                <form onsubmit="procesarEnvio(event, 'VTV_Documentacion')">
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Trámite</label>
                             <input type="text" id="v_cat" class="form-control" value="VTV" required>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Resultado</label>
+                            <select id="v_res" class="form-select" required>
+                                <option value="Aprobado">✅ Aprobado</option>
+                                <option value="Condicional">⚠️ Condicional</option>
+                                <option value="Rechazado">❌ Rechazado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold text-success">Costo Trámite ($)</label>
+                            <input type="number" id="v_costo" class="form-control border-success">
+                        </div>
+                        <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Fecha Realización</label>
                             <input type="date" id="v_fec" class="form-control" required>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Km Actual</label>
                             <input type="number" id="v_km" class="form-control">
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold text-danger">Fecha Vencimiento</label>
                             <input type="date" id="v_prox_fec" class="form-control border-danger" required>
                         </div>
@@ -199,12 +221,11 @@
             </div>
         </div>
         <div class="card">
-            <div class="card-header bg-white fw-bold">Registro de Documentos</div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
                         <thead class="table-light">
-                            <tr><th>Fecha</th><th>Trámite</th><th>Vencimiento</th></tr>
+                            <tr><th>Fecha</th><th>Trámite</th><th>Resultado</th><th>Vencimiento</th><th>Costo</th><th></th></tr>
                         </thead>
                         <tbody id="tabla_VTV_Documentacion"></tbody>
                     </table>
@@ -215,14 +236,22 @@
 </div>
 
 <script>
-    // --- CONFIGURACIÓN ---
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbyI5HW0xJWZZfPWUR2RzO9TLtu9G0tlwpzRE0yqw0dYmtP3j2JWcJis2LbyWWqmRemo/exec"; // REEMPLAZÁ ESTO POR TU URL
+    // --- TU CONFIGURACIÓN AQUÍ ---
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbz7q0_NMZwI8YqZEhKiZOGqLSZQl_m4mJSRQg4DFITDV58D8PkZxJIsNU1DcVEZZOXS/exec"; 
     const VEHICULO_ID = "V-01";
 
-    // Inicializar Dashboard al cargar la página
-    window.onload = () => { cargarResumenDashboard(); };
+    // Al cargar
+    window.onload = () => { 
+        // Recuperar KM guardado
+        const kmGuardado = localStorage.getItem('ultimoKm');
+        if(kmGuardado) {
+            document.getElementById('ultimoKmGuardado').innerText = kmGuardado;
+            document.getElementById('kmInput').value = kmGuardado;
+        }
+        cargarResumenDashboard(); 
+        if(kmGuardado) analizarAlertas(false);
+    };
 
-    // Función para formatear Fechas (Saca la hora y deja DD/MM/YYYY)
     function formatearFecha(fechaStr) {
         if (!fechaStr) return '-';
         if (fechaStr.includes('T')) {
@@ -230,194 +259,185 @@
             return `${partes[2]}/${partes[1]}/${partes[0]}`;
         }
         const d = new Date(fechaStr);
-        if (!isNaN(d)) {
-            const dia = String(d.getDate()).padStart(2, '0');
-            const mes = String(d.getMonth() + 1).padStart(2, '0');
-            return `${dia}/${mes}/${d.getFullYear()}`;
-        }
+        if (!isNaN(d)) return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
         return fechaStr;
     }
 
-    // Navegación entre secciones
+    function formatPlata(num) {
+        if(!num) return '-';
+        return '$ ' + parseFloat(num).toLocaleString('es-AR');
+    }
+
     function switchSection(id) {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        
         document.getElementById(id).classList.add('active');
         const link = Array.from(document.querySelectorAll('.nav-link')).find(l => l.innerText.toLowerCase().includes(id.substring(0,3)));
         if(link) link.classList.add('active');
 
-        if(id === 'dashboard') {
-            cargarResumenDashboard();
-        } else {
-            cargarTabla(id === 'gastos' ? 'Gastos_Corrientes' : (id === 'vtv' ? 'VTV_Documentacion' : 'Mantenimiento'));
-        }
+        if(id === 'dashboard') cargarResumenDashboard();
+        else cargarTabla(id === 'gastos' ? 'Gastos_Corrientes' : (id === 'vtv' ? 'VTV_Documentacion' : 'Mantenimiento'));
     }
 
-    // Envío de datos al Sheet
+    // Insertar Nuevo Registro
     async function procesarEnvio(event, hoja) {
         event.preventDefault();
-        document.getElementById('loadingOverlay').style.display = 'block';
+        mostrarCarga("Guardando en Google Sheets...");
         
         const idServ = "S-" + Date.now();
         let valores = [];
 
+        // Atento acá: el orden incluye ahora el Costo y Resultado al final
         if(hoja === 'Mantenimiento') {
-            valores = [idServ, VEHICULO_ID, document.getElementById('m_cat').value, document.getElementById('m_sub').value, document.getElementById('m_fec').value, document.getElementById('m_km').value, document.getElementById('m_prox_km').value, document.getElementById('m_prox_fec').value];
+            valores = [idServ, VEHICULO_ID, document.getElementById('m_cat').value, document.getElementById('m_sub').value, document.getElementById('m_fec').value, document.getElementById('m_km').value, document.getElementById('m_prox_km').value, document.getElementById('m_prox_fec').value, document.getElementById('m_costo').value];
         } else if(hoja === 'Gastos_Corrientes') {
-            valores = [idServ, VEHICULO_ID, document.getElementById('g_cat').value, document.getElementById('g_sub').value, document.getElementById('g_fec').value];
+            valores = [idServ, VEHICULO_ID, document.getElementById('g_cat').value, document.getElementById('g_sub').value, document.getElementById('g_fec').value, document.getElementById('g_costo').value];
         } else if(hoja === 'VTV_Documentacion') {
-            valores = [idServ, VEHICULO_ID, document.getElementById('v_cat').value, document.getElementById('v_fec').value, document.getElementById('v_km').value, document.getElementById('v_prox_fec').value];
+            valores = [idServ, VEHICULO_ID, document.getElementById('v_cat').value, document.getElementById('v_fec').value, document.getElementById('v_km').value, document.getElementById('v_prox_fec').value, document.getElementById('v_res').value, document.getElementById('v_costo').value];
         }
 
         try {
-            await fetch(GAS_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: JSON.stringify({ hoja: hoja, valores: valores }),
-                headers: { 'Content-Type': 'application/json' }
-            });
-            alert("✅ Registro guardado correctamente.");
+            await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'insert', hoja: hoja, valores: valores }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
             event.target.reset();
             cargarTabla(hoja);
-        } catch (e) {
-            alert("❌ Error al guardar.");
-        } finally {
-            document.getElementById('loadingOverlay').style.display = 'none';
-        }
+        } catch (e) { alert("❌ Error de conexión."); } 
+        finally { ocultarCarga(); }
     }
 
-    // Cargar Tarjetas del Dashboard (NUEVO)
+    // Borrar Registro (NUEVO)
+    async function borrarRegistro(id, hoja) {
+        if(!confirm("⚠️ ¿Seguro que querés eliminar este registro para siempre?")) return;
+        mostrarCarga("Eliminando registro...");
+        try {
+            await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', hoja: hoja, id: id }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+            cargarTabla(hoja);
+        } catch (e) { alert("❌ Error al eliminar."); } 
+        finally { ocultarCarga(); }
+    }
+
+    function armarMiniLista(arrayDatos) {
+        if(!arrayDatos || arrayDatos.length === 0) return '<p class="small text-muted">Sin registros</p>';
+        return arrayDatos.map(item => `
+            <div class="small-list">
+                <strong>${item.Categoría}</strong> ${item.SubCategoria ? `(${item.SubCategoria})` : ''} <br>
+                <span class="text-muted">🗓️ ${formatearFecha(item.Fecha)} ${item.Costo ? `| 💵 ${formatPlata(item.Costo)}` : ''}</span>
+            </div>
+        `).join('');
+    }
+
     async function cargarResumenDashboard() {
         const box = document.getElementById('dashboardCards');
-        
         try {
-            // Traemos los datos de las 3 hojas al mismo tiempo para que sea rápido
-            const [reqM, reqG, reqV] = await Promise.all([
-                fetch(`${GAS_URL}?hoja=Mantenimiento`),
-                fetch(`${GAS_URL}?hoja=Gastos_Corrientes`),
-                fetch(`${GAS_URL}?hoja=VTV_Documentacion`)
-            ]);
-
-            const dataM = await reqM.json();
-            const dataG = await reqG.json();
-            const dataV = await reqV.json();
-
-            // Buscamos el último registro de cada uno
-            const ultM = dataM.length > 0 ? dataM[dataM.length - 1] : null;
-            const ultG = dataG.length > 0 ? dataG[dataG.length - 1] : null;
-            const ultV = dataV.length > 0 ? dataV[dataV.length - 1] : null;
+            const [reqM, reqG, reqV] = await Promise.all([ fetch(`${GAS_URL}?hoja=Mantenimiento`), fetch(`${GAS_URL}?hoja=Gastos_Corrientes`), fetch(`${GAS_URL}?hoja=VTV_Documentacion`) ]);
+            const dataM = await reqM.json(); const dataG = await reqG.json(); const dataV = await reqV.json();
+            
+            // Tomamos los últimos 3 de cada uno
+            const ult3M = dataM.slice(-3).reverse();
+            const ult3G = dataG.slice(-3).reverse();
+            const ult3V = dataV.slice(-3).reverse();
 
             box.innerHTML = `
                 <div class="col-md-4 mb-3">
-                    <div class="card bg-white shadow-sm h-100 border-start border-primary border-4">
-                        <div class="card-body">
-                            <h6 class="card-title text-primary"><i class="fw-bold">🛠️ Último Mantenimiento</i></h6>
-                            ${ultM ? `<p class="mb-1 fw-bold">${ultM.Categoría} (${ultM.SubCategoria})</p>
-                                      <p class="mb-0 small text-muted">🗓️ ${formatearFecha(ultM.Fecha)} | 🚘 ${ultM.Km} km</p>` 
-                                   : '<p class="small text-muted">Aún no hay registros</p>'}
-                        </div>
-                    </div>
+                    <div class="card bg-white shadow-sm h-100 border-start border-primary border-4"><div class="card-body">
+                        <h6 class="card-title text-primary"><i class="fw-bold">🛠️ Últimos Mantenimientos</i></h6>
+                        ${armarMiniLista(ult3M)}
+                    </div></div>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <div class="card bg-white shadow-sm h-100 border-start border-success border-4">
-                        <div class="card-body">
-                            <h6 class="card-title text-success"><i class="fw-bold">💸 Último Gasto</i></h6>
-                            ${ultG ? `<p class="mb-1 fw-bold">${ultG.Categoría} (${ultG.SubCategoria})</p>
-                                      <p class="mb-0 small text-muted">🗓️ Abonado el: ${formatearFecha(ultG.Fecha)}</p>` 
-                                   : '<p class="small text-muted">Aún no hay registros</p>'}
-                        </div>
-                    </div>
+                    <div class="card bg-white shadow-sm h-100 border-start border-success border-4"><div class="card-body">
+                        <h6 class="card-title text-success"><i class="fw-bold">💸 Últimos Gastos</i></h6>
+                        ${armarMiniLista(ult3G)}
+                    </div></div>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <div class="card bg-white shadow-sm h-100 border-start border-danger border-4">
-                        <div class="card-body">
-                            <h6 class="card-title text-danger"><i class="fw-bold">📄 VTV / Doc.</i></h6>
-                            ${ultV ? `<p class="mb-1 fw-bold">${ultV.Categoría}</p>
-                                      <p class="mb-0 small text-muted">⚠️ Vence: <strong>${formatearFecha(ultV.Prox_Rev_Fecha)}</strong></p>` 
-                                   : '<p class="small text-muted">Aún no hay registros</p>'}
-                        </div>
-                    </div>
+                    <div class="card bg-white shadow-sm h-100 border-start border-danger border-4"><div class="card-body">
+                        <h6 class="card-title text-danger"><i class="fw-bold">📄 Últimas VTV / Doc.</i></h6>
+                        ${armarMiniLista(ult3V)}
+                    </div></div>
                 </div>
             `;
-        } catch (e) {
-            box.innerHTML = '<div class="col-12"><div class="alert alert-warning">No se pudo cargar el resumen. Verificá tu conexión o la URL del script.</div></div>';
-        }
+        } catch (e) { box.innerHTML = '<div class="col-12 text-danger">Error cargando resumen.</div>'; }
     }
 
-    // Carga de tablas individuales desde el Sheet
     async function cargarTabla(hoja) {
         const tbody = document.getElementById(`tabla_${hoja}`);
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center"><div class="spinner-border spinner-border-sm text-primary"></div> Cargando datos...</td></tr>';
-
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm"></div></td></tr>';
         try {
             const resp = await fetch(`${GAS_URL}?hoja=${hoja}`);
             const datos = await resp.json();
             tbody.innerHTML = "";
-            
-            if(datos.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Aún no hay registros en esta categoría.</td></tr>`;
-                return;
-            }
+            if(datos.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="text-center">Sin registros.</td></tr>`; return; }
 
             datos.reverse().slice(0, 15).forEach(fila => {
                 const tr = document.createElement('tr');
+                const btnX = `<button class="btn-delete" onclick="borrarRegistro('${fila.ID_Servicio}', '${hoja}')" title="Eliminar">❌</button>`;
+                
                 if(hoja === 'Mantenimiento') {
-                    // Ahora incluimos formatearFecha() y la Subcategoría
-                    tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td>
-                                    <td>${fila.Categoría}</td>
-                                    <td>${fila.SubCategoria}</td>
-                                    <td>${fila.Km}</td>
-                                    <td><span class="badge bg-warning text-dark">${fila.Prox_Rev_Km || '-'}</span></td>`;
+                    tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td>${fila.Categoría} (${fila.SubCategoria})</td><td>${fila.Km}</td><td><span class="badge bg-warning text-dark">${formatearFecha(fila.Prox_Rev_Fecha)}</span></td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td>${btnX}</td>`;
                 } else if(hoja === 'Gastos_Corrientes') {
-                    tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td>
-                                    <td>${fila.Categoría}</td>
-                                    <td>${fila.SubCategoria}</td>`;
+                    tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td>${fila.Categoría}</td><td>${fila.SubCategoria}</td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td>${btnX}</td>`;
                 } else if(hoja === 'VTV_Documentacion') {
-                    tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td>
-                                    <td>${fila.Categoría}</td>
-                                    <td class="text-danger fw-bold">${formatearFecha(fila.Prox_Rev_Fecha)}</td>`;
+                    const colorRes = fila.Resultado === 'Aprobado' ? 'text-success' : (fila.Resultado === 'Rechazado' ? 'text-danger' : 'text-warning');
+                    tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td>${fila.Categoría}</td><td class="fw-bold ${colorRes}">${fila.Resultado}</td><td class="text-danger fw-bold">${formatearFecha(fila.Prox_Rev_Fecha)}</td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td>${btnX}</td>`;
                 }
                 tbody.appendChild(tr);
             });
-        } catch (e) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error al cargar la tabla.</td></tr>';
-        }
+        } catch (e) { tbody.innerHTML = '<tr><td colspan="6" class="text-danger text-center">Error de carga.</td></tr>'; }
     }
 
-    // Lógica de Alertas en el Dashboard
-    async function analizarAlertas() {
-        const kmActual = parseInt(document.getElementById('kmInput').value);
-        const box = document.getElementById('alertasBox');
-        if(!kmActual) return alert("Por favor, ingresá el kilometraje actual.");
+    // Alertas por KM y por FECHA
+    async function analizarAlertas(forzarActualizacion = true) {
+        const kmInput = document.getElementById('kmInput').value;
+        if(forzarActualizacion) {
+            if(!kmInput) return alert("Ingresá el kilometraje actual.");
+            localStorage.setItem('ultimoKm', kmInput);
+            document.getElementById('ultimoKmGuardado').innerText = kmInput;
+        }
+        if(!kmInput) return; // Salir silenciosamente si se llamó automático y no hay KM
 
-        box.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm text-primary"></div> Analizando...</div>';
+        const box = document.getElementById('alertasBox');
+        box.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm"></div> Analizando...</div>';
 
         try {
-            const resp = await fetch(`${GAS_URL}?hoja=Mantenimiento`);
-            const datos = await resp.json();
+            const [reqM, reqV] = await Promise.all([ fetch(`${GAS_URL}?hoja=Mantenimiento`), fetch(`${GAS_URL}?hoja=VTV_Documentacion`) ]);
+            const dataM = await reqM.json(); const dataV = await reqV.json();
             
             let alertasHTML = "";
-            let pendientes = 0;
+            const hoy = new Date(); // Fecha de hoy (14 de Abril de 2026)
 
-            datos.forEach(item => {
+            // 1. Revisar Mantenimientos (Por Km y Por Fecha)
+            dataM.forEach(item => {
+                // Check KM
                 if(item.Prox_Rev_Km) {
-                    const diff = parseInt(item.Prox_Rev_Km) - kmActual;
-                    if(diff <= 0) {
-                        alertasHTML += `<div class="alert alert-danger shadow-sm">🚨 <strong>VENCIDO:</strong> El trabajo de <strong>${item.Categoría} (${item.SubCategoria})</strong> debía hacerse a los ${item.Prox_Rev_Km} km. (Te pasaste ${Math.abs(diff)} km).</div>`;
-                        pendientes++;
-                    } else if(diff <= 1500) {
-                        alertasHTML += `<div class="alert alert-warning shadow-sm">⚠️ <strong>PRÓXIMO:</strong> Toca revisar <strong>${item.Categoría}</strong> en ${diff} km.</div>`;
-                        pendientes++;
-                    }
+                    const diffKm = parseInt(item.Prox_Rev_Km) - parseInt(kmInput);
+                    if(diffKm <= 0) alertasHTML += `<div class="alert alert-danger shadow-sm">🚨 <strong>KM VENCIDO:</strong> ${item.Categoría} (${item.SubCategoria}) debió hacerse a los ${item.Prox_Rev_Km} km.</div>`;
+                    else if(diffKm <= 1500) alertasHTML += `<div class="alert alert-warning shadow-sm">⚠️ <strong>PRÓXIMO POR KM:</strong> ${item.Categoría} toca en ${diffKm} km.</div>`;
+                }
+                // Check Fecha
+                if(item.Prox_Rev_Fecha) {
+                    const fRev = new Date(item.Prox_Rev_Fecha);
+                    const diffDias = Math.ceil((fRev - hoy) / (1000 * 60 * 60 * 24));
+                    if(diffDias < 0) alertasHTML += `<div class="alert alert-danger shadow-sm">⏰ <strong>FECHA VENCIDA:</strong> ${item.Categoría} venció el ${formatearFecha(item.Prox_Rev_Fecha)}.</div>`;
+                    else if(diffDias <= 30) alertasHTML += `<div class="alert alert-warning shadow-sm">📅 <strong>PRÓXIMO POR FECHA:</strong> ${item.Categoría} vence en ${diffDias} días.</div>`;
                 }
             });
 
-            box.innerHTML = alertasHTML || '<div class="alert alert-success shadow-sm">✅ <strong>¡Mantenimiento al día!</strong> No tenés alertas inminentes según el kilometraje ingresado.</div>';
-        } catch (e) {
-            box.innerHTML = '<div class="alert alert-danger">Error al leer los datos de mantenimiento.</div>';
-        }
+            // 2. Revisar VTV (Por Fecha)
+            dataV.forEach(item => {
+                if(item.Prox_Rev_Fecha) {
+                    const fRev = new Date(item.Prox_Rev_Fecha);
+                    const diffDias = Math.ceil((fRev - hoy) / (1000 * 60 * 60 * 24));
+                    if(diffDias < 0) alertasHTML += `<div class="alert alert-danger shadow-sm">🚓 <strong>VTV VENCIDA:</strong> Venció el ${formatearFecha(item.Prox_Rev_Fecha)}.</div>`;
+                    else if(diffDias <= 30) alertasHTML += `<div class="alert alert-warning shadow-sm">📄 <strong>VTV PRÓXIMA:</strong> Vence en ${diffDias} días.</div>`;
+                }
+            });
+
+            box.innerHTML = alertasHTML || `<div class="alert alert-success shadow-sm">✅ <strong>¡Todo al día Hernán!</strong> No hay alertas de KM ni de Fechas.</div>`;
+        } catch (e) { box.innerHTML = '<div class="alert alert-danger">Error de lectura.</div>'; }
     }
+
+    function mostrarCarga(txt) { document.getElementById('loadingText').innerText = txt; document.getElementById('loadingOverlay').style.display = 'block'; }
+    function ocultarCarga() { document.getElementById('loadingOverlay').style.display = 'none'; }
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
