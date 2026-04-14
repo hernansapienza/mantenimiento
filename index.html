@@ -127,7 +127,7 @@
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
                         <thead class="table-light">
-                            <tr><th>Fecha</th><th>Detalle</th><th>Km</th><th>Próx. Fecha</th><th>Costo</th><th></th></tr>
+                            <tr><th>Fecha</th><th>Detalle</th><th>Km</th><th>Próx. Km</th><th>Próx. Fecha</th><th>Costo</th><th></th></tr>
                         </thead>
                         <tbody id="tabla_Mantenimiento"></tbody>
                     </table>
@@ -287,7 +287,6 @@
         const idServ = "S-" + Date.now();
         let valores = [];
 
-        // Atento acá: el orden incluye ahora el Costo y Resultado al final
         if(hoja === 'Mantenimiento') {
             valores = [idServ, VEHICULO_ID, document.getElementById('m_cat').value, document.getElementById('m_sub').value, document.getElementById('m_fec').value, document.getElementById('m_km').value, document.getElementById('m_prox_km').value, document.getElementById('m_prox_fec').value, document.getElementById('m_costo').value];
         } else if(hoja === 'Gastos_Corrientes') {
@@ -304,7 +303,7 @@
         finally { ocultarCarga(); }
     }
 
-    // Borrar Registro (NUEVO)
+    // Borrar Registro
     async function borrarRegistro(id, hoja) {
         if(!confirm("⚠️ ¿Seguro que querés eliminar este registro para siempre?")) return;
         mostrarCarga("Eliminando registro...");
@@ -331,7 +330,6 @@
             const [reqM, reqG, reqV] = await Promise.all([ fetch(`${GAS_URL}?hoja=Mantenimiento`), fetch(`${GAS_URL}?hoja=Gastos_Corrientes`), fetch(`${GAS_URL}?hoja=VTV_Documentacion`) ]);
             const dataM = await reqM.json(); const dataG = await reqG.json(); const dataV = await reqV.json();
             
-            // Tomamos los últimos 3 de cada uno
             const ult3M = dataM.slice(-3).reverse();
             const ult3G = dataG.slice(-3).reverse();
             const ult3V = dataV.slice(-3).reverse();
@@ -361,19 +359,23 @@
 
     async function cargarTabla(hoja) {
         const tbody = document.getElementById(`tabla_${hoja}`);
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm"></div></td></tr>';
+        // Ajustado a colspan 7 por la nueva columna
+        let colCount = hoja === 'Mantenimiento' ? 7 : (hoja === 'VTV_Documentacion' ? 6 : 5);
+        tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center"><div class="spinner-border spinner-border-sm"></div></td></tr>`;
+        
         try {
             const resp = await fetch(`${GAS_URL}?hoja=${hoja}`);
             const datos = await resp.json();
             tbody.innerHTML = "";
-            if(datos.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="text-center">Sin registros.</td></tr>`; return; }
+            if(datos.length === 0) { tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center">Sin registros.</td></tr>`; return; }
 
             datos.reverse().slice(0, 15).forEach(fila => {
                 const tr = document.createElement('tr');
                 const btnX = `<button class="btn-delete" onclick="borrarRegistro('${fila.ID_Servicio}', '${hoja}')" title="Eliminar">❌</button>`;
                 
                 if(hoja === 'Mantenimiento') {
-                    tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td>${fila.Categoría} (${fila.SubCategoria})</td><td>${fila.Km}</td><td><span class="badge bg-warning text-dark">${formatearFecha(fila.Prox_Rev_Fecha)}</span></td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td>${btnX}</td>`;
+                    // Agregada la columna de Prox_Rev_Km con un badge azul
+                    tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td>${fila.Categoría} (${fila.SubCategoria})</td><td>${fila.Km}</td><td><span class="badge bg-info text-dark">${fila.Prox_Rev_Km || '-'}</span></td><td><span class="badge bg-warning text-dark">${formatearFecha(fila.Prox_Rev_Fecha)}</span></td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td>${btnX}</td>`;
                 } else if(hoja === 'Gastos_Corrientes') {
                     tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td>${fila.Categoría}</td><td>${fila.SubCategoria}</td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td>${btnX}</td>`;
                 } else if(hoja === 'VTV_Documentacion') {
@@ -382,7 +384,7 @@
                 }
                 tbody.appendChild(tr);
             });
-        } catch (e) { tbody.innerHTML = '<tr><td colspan="6" class="text-danger text-center">Error de carga.</td></tr>'; }
+        } catch (e) { tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-danger text-center">Error de carga.</td></tr>`; }
     }
 
     // Alertas por KM y por FECHA
@@ -393,7 +395,7 @@
             localStorage.setItem('ultimoKm', kmInput);
             document.getElementById('ultimoKmGuardado').innerText = kmInput;
         }
-        if(!kmInput) return; // Salir silenciosamente si se llamó automático y no hay KM
+        if(!kmInput) return;
 
         const box = document.getElementById('alertasBox');
         box.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm"></div> Analizando...</div>';
@@ -403,17 +405,14 @@
             const dataM = await reqM.json(); const dataV = await reqV.json();
             
             let alertasHTML = "";
-            const hoy = new Date(); // Fecha de hoy (14 de Abril de 2026)
+            const hoy = new Date();
 
-            // 1. Revisar Mantenimientos (Por Km y Por Fecha)
             dataM.forEach(item => {
-                // Check KM
                 if(item.Prox_Rev_Km) {
                     const diffKm = parseInt(item.Prox_Rev_Km) - parseInt(kmInput);
                     if(diffKm <= 0) alertasHTML += `<div class="alert alert-danger shadow-sm">🚨 <strong>KM VENCIDO:</strong> ${item.Categoría} (${item.SubCategoria}) debió hacerse a los ${item.Prox_Rev_Km} km.</div>`;
                     else if(diffKm <= 1500) alertasHTML += `<div class="alert alert-warning shadow-sm">⚠️ <strong>PRÓXIMO POR KM:</strong> ${item.Categoría} toca en ${diffKm} km.</div>`;
                 }
-                // Check Fecha
                 if(item.Prox_Rev_Fecha) {
                     const fRev = new Date(item.Prox_Rev_Fecha);
                     const diffDias = Math.ceil((fRev - hoy) / (1000 * 60 * 60 * 24));
@@ -422,7 +421,6 @@
                 }
             });
 
-            // 2. Revisar VTV (Por Fecha)
             dataV.forEach(item => {
                 if(item.Prox_Rev_Fecha) {
                     const fRev = new Date(item.Prox_Rev_Fecha);
@@ -432,7 +430,7 @@
                 }
             });
 
-            box.innerHTML = alertasHTML || `<div class="alert alert-success shadow-sm">✅ <strong>¡Todo al día Hernán!</strong> No hay alertas de KM ni de Fechas.</div>`;
+            box.innerHTML = alertasHTML || `<div class="alert alert-success shadow-sm">✅ <strong>¡Todo al día!</strong> No hay alertas de KM ni de Fechas.</div>`;
         } catch (e) { box.innerHTML = '<div class="alert alert-danger">Error de lectura.</div>'; }
     }
 
