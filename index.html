@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control Vehicular - AC 064 PP</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .sidebar { height: 100vh; background: #1a1d20; color: white; padding: 20px; position: fixed; width: 260px; z-index: 1000; }
@@ -23,6 +24,8 @@
         .small-list { font-size: 0.85rem; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; }
         .small-list:last-child { border-bottom: none; }
         #loadingOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 2000; text-align: center; padding-top: 20%; }
+        /* Contenedor del gráfico para que sea responsive */
+        .chart-container { position: relative; height: 300px; width: 100%; }
         @media (max-width: 768px) {
             .sidebar { height: auto; width: 100%; position: relative; padding: 10px; }
             .main-content { margin-left: 0; padding: 15px; }
@@ -52,6 +55,15 @@
     <div id="dashboard" class="section active">
         <h2 class="mb-4">Estado General</h2>
         
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-secondary fw-bold mb-3">📈 Evolución de Costos Mensuales</h5>
+                <div class="chart-container">
+                    <canvas id="costosChart"></canvas>
+                </div>
+            </div>
+        </div>
+
         <h5 class="mb-3 text-secondary">Últimos 3 Trabajos Realizados</h5>
         <div class="row" id="dashboardCards">
             <div class="col-12 text-center text-muted small"><div class="spinner-border spinner-border-sm"></div> Cargando resumen...</div>
@@ -59,7 +71,7 @@
 
         <hr class="my-4">
 
-        <div class="card mb-4 border-primary">
+        <div class="card mb-4 border-primary shadow-sm">
             <div class="card-body">
                 <h5 class="card-title text-primary">Control de Alertas (Km y Fechas)</h5>
                 <p class="text-muted small mb-2">Último kilometraje ingresado: <strong id="ultimoKmGuardado">-</strong> km</p>
@@ -76,7 +88,7 @@
 
     <div id="mantenimiento" class="section">
         <h2 class="mb-4">🛠️ Mantenimiento</h2>
-        <div class="card mb-4">
+        <div class="card mb-4 shadow-sm">
             <div class="card-body">
                 <form onsubmit="procesarEnvio(event, 'Mantenimiento')">
                     <div class="row">
@@ -122,7 +134,7 @@
                 </form>
             </div>
         </div>
-        <div class="card">
+        <div class="card shadow-sm">
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
@@ -138,13 +150,14 @@
 
     <div id="gastos" class="section">
         <h2 class="mb-4">💸 Gastos Corrientes</h2>
-        <div class="card mb-4">
+        <div class="card mb-4 shadow-sm">
             <div class="card-body">
                 <form onsubmit="procesarEnvio(event, 'Gastos_Corrientes')">
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Categoría</label>
                             <select id="g_cat" class="form-select" required>
+                                <option value="Combustible">⛽ Combustible</option>
                                 <option value="Seguro">🛡️ Seguro</option>
                                 <option value="Patente">🏛️ Patente</option>
                                 <option value="Cochera">🏠 Cochera</option>
@@ -152,7 +165,7 @@
                         </div>
                         <div class="col-md-5 mb-3">
                             <label class="form-label fw-bold">Mes / Detalle</label>
-                            <input type="text" id="g_sub" class="form-control" placeholder="Ej: Cuota 04/26" required>
+                            <input type="text" id="g_sub" class="form-control" placeholder="Ej: V-Power / Cuota 04" required>
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label fw-bold text-success">Importe Pagado ($)</label>
@@ -167,7 +180,7 @@
                 </form>
             </div>
         </div>
-        <div class="card">
+        <div class="card shadow-sm">
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
@@ -183,7 +196,7 @@
 
     <div id="vtv" class="section">
         <h2 class="mb-4">📄 VTV y Documentación</h2>
-        <div class="card mb-4">
+        <div class="card mb-4 shadow-sm">
             <div class="card-body">
                 <form onsubmit="procesarEnvio(event, 'VTV_Documentacion')">
                     <div class="row">
@@ -220,7 +233,7 @@
                 </form>
             </div>
         </div>
-        <div class="card">
+        <div class="card shadow-sm">
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
@@ -237,12 +250,14 @@
 
 <script>
     // --- TU CONFIGURACIÓN AQUÍ ---
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbz7q0_NMZwI8YqZEhKiZOGqLSZQl_m4mJSRQg4DFITDV58D8PkZxJIsNU1DcVEZZOXS/exec"; 
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbz7q0_NMZwI8YqZEhKiZOGqLSZQl_m4mJSRQg4DFITDV58D8PkZxJIsNU1DcVEZZOXS/exec"; // REEMPLAZAR
     const VEHICULO_ID = "V-01";
+    
+    // Variable global para almacenar el gráfico y poder actualizarlo
+    let miGrafico = null;
 
     // Al cargar
     window.onload = () => { 
-        // Recuperar KM guardado
         const kmGuardado = localStorage.getItem('ultimoKm');
         if(kmGuardado) {
             document.getElementById('ultimoKmGuardado').innerText = kmGuardado;
@@ -252,6 +267,7 @@
         if(kmGuardado) analizarAlertas(false);
     };
 
+    // Utilidades
     function formatearFecha(fechaStr) {
         if (!fechaStr) return '-';
         if (fechaStr.includes('T')) {
@@ -263,11 +279,21 @@
         return fechaStr;
     }
 
+    function extraerMesAnio(fechaStr) {
+        if (!fechaStr) return null;
+        let d = new Date(fechaStr);
+        if (fechaStr.includes('T')) d = new Date(fechaStr.split('T')[0]);
+        if (isNaN(d)) return null;
+        const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        return `${meses[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
     function formatPlata(num) {
         if(!num) return '-';
         return '$ ' + parseFloat(num).toLocaleString('es-AR');
     }
 
+    // Navegación
     function switchSection(id) {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
@@ -279,7 +305,7 @@
         else cargarTabla(id === 'gastos' ? 'Gastos_Corrientes' : (id === 'vtv' ? 'VTV_Documentacion' : 'Mantenimiento'));
     }
 
-    // Insertar Nuevo Registro
+    // Backend: Insertar
     async function procesarEnvio(event, hoja) {
         event.preventDefault();
         mostrarCarga("Guardando en Google Sheets...");
@@ -303,10 +329,10 @@
         finally { ocultarCarga(); }
     }
 
-    // Borrar Registro
+    // Backend: Borrar
     async function borrarRegistro(id, hoja) {
-        if(!confirm("⚠️ ¿Seguro que querés eliminar este registro para siempre?")) return;
-        mostrarCarga("Eliminando registro...");
+        if(!confirm("⚠️ ¿Seguro que querés eliminar este registro?")) return;
+        mostrarCarga("Eliminando...");
         try {
             await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', hoja: hoja, id: id }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
             cargarTabla(hoja);
@@ -324,42 +350,103 @@
         `).join('');
     }
 
+    // Cargar Dashboard (Tarjetas + Gráfico)
     async function cargarResumenDashboard() {
         const box = document.getElementById('dashboardCards');
         try {
             const [reqM, reqG, reqV] = await Promise.all([ fetch(`${GAS_URL}?hoja=Mantenimiento`), fetch(`${GAS_URL}?hoja=Gastos_Corrientes`), fetch(`${GAS_URL}?hoja=VTV_Documentacion`) ]);
             const dataM = await reqM.json(); const dataG = await reqG.json(); const dataV = await reqV.json();
             
+            // Render Tarjetas
             const ult3M = dataM.slice(-3).reverse();
             const ult3G = dataG.slice(-3).reverse();
             const ult3V = dataV.slice(-3).reverse();
 
             box.innerHTML = `
-                <div class="col-md-4 mb-3">
-                    <div class="card bg-white shadow-sm h-100 border-start border-primary border-4"><div class="card-body">
-                        <h6 class="card-title text-primary"><i class="fw-bold">🛠️ Últimos Mantenimientos</i></h6>
-                        ${armarMiniLista(ult3M)}
-                    </div></div>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <div class="card bg-white shadow-sm h-100 border-start border-success border-4"><div class="card-body">
-                        <h6 class="card-title text-success"><i class="fw-bold">💸 Últimos Gastos</i></h6>
-                        ${armarMiniLista(ult3G)}
-                    </div></div>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <div class="card bg-white shadow-sm h-100 border-start border-danger border-4"><div class="card-body">
-                        <h6 class="card-title text-danger"><i class="fw-bold">📄 Últimas VTV / Doc.</i></h6>
-                        ${armarMiniLista(ult3V)}
-                    </div></div>
-                </div>
+                <div class="col-md-4 mb-3"><div class="card bg-white h-100 border-start border-primary border-4"><div class="card-body"><h6 class="text-primary fw-bold">🛠️ Mantenimientos</h6>${armarMiniLista(ult3M)}</div></div></div>
+                <div class="col-md-4 mb-3"><div class="card bg-white h-100 border-start border-success border-4"><div class="card-body"><h6 class="text-success fw-bold">💸 Gastos</h6>${armarMiniLista(ult3G)}</div></div></div>
+                <div class="col-md-4 mb-3"><div class="card bg-white h-100 border-start border-danger border-4"><div class="card-body"><h6 class="text-danger fw-bold">📄 VTV / Doc</h6>${armarMiniLista(ult3V)}</div></div></div>
             `;
-        } catch (e) { box.innerHTML = '<div class="col-12 text-danger">Error cargando resumen.</div>'; }
+
+            // Procesar datos para el gráfico
+            generarGraficoCostos(dataM, dataG, dataV);
+
+        } catch (e) { box.innerHTML = '<div class="col-12 text-danger">Error cargando resumen.</div>'; console.error(e); }
     }
 
+    // LÓGICA DEL GRÁFICO (Chart.js)
+    function generarGraficoCostos(dataM, dataG, dataV) {
+        const agrupar = {};
+
+        // Función para procesar y sumar costos
+        const procesarData = (array, categoriaLlave, esCombustible = false) => {
+            array.forEach(item => {
+                const mes = extraerMesAnio(item.Fecha);
+                const costo = parseFloat(item.Costo) || 0;
+                if(mes && costo > 0) {
+                    if(!agrupar[mes]) agrupar[mes] = { manto: 0, gastos: 0, combus: 0, vtv: 0, fData: new Date(item.Fecha) };
+                    
+                    if(esCombustible && item.Categoría === 'Combustible') {
+                        agrupar[mes].combus += costo;
+                    } else if (esCombustible && item.Categoría !== 'Combustible') {
+                        agrupar[mes].gastos += costo; // Seguro, Patente, etc
+                    } else {
+                        agrupar[mes][categoriaLlave] += costo;
+                    }
+                }
+            });
+        };
+
+        procesarData(dataM, 'manto');
+        procesarData(dataG, 'gastos', true); // Le pasamos true para que separe el Combustible
+        procesarData(dataV, 'vtv');
+
+        // Ordenar cronológicamente
+        const mesesOrdenados = Object.keys(agrupar).sort((a, b) => agrupar[a].fData - agrupar[b].fData);
+        
+        // Preparar las series de datos
+        const datasetManto = mesesOrdenados.map(m => agrupar[m].manto);
+        const datasetVTV = mesesOrdenados.map(m => agrupar[m].vtv);
+        const datasetGastos = mesesOrdenados.map(m => agrupar[m].gastos);
+        const datasetCombus = mesesOrdenados.map(m => agrupar[m].combus);
+
+        const ctx = document.getElementById('costosChart').getContext('2d');
+        
+        // Destruir gráfico previo si existe (para evitar solapamientos al recargar)
+        if (miGrafico) { miGrafico.destroy(); }
+
+        miGrafico = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: mesesOrdenados,
+                datasets: [
+                    { label: 'VTV y Doc', data: datasetVTV, backgroundColor: 'rgba(220, 53, 69, 0.5)', borderColor: '#dc3545', fill: true, tension: 0.3 },
+                    { label: 'Gastos Corrientes', data: datasetGastos, backgroundColor: 'rgba(25, 135, 84, 0.5)', borderColor: '#198754', fill: true, tension: 0.3 },
+                    { label: 'Combustible', data: datasetCombus, backgroundColor: 'rgba(255, 193, 7, 0.5)', borderColor: '#ffc107', fill: true, tension: 0.3 },
+                    { label: 'Mantenimiento', data: datasetManto, backgroundColor: 'rgba(13, 110, 253, 0.5)', borderColor: '#0d6efd', fill: true, tension: 0.3 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    tooltip: { callbacks: { label: function(context) { return context.dataset.label + ': $' + context.parsed.y.toLocaleString('es-AR'); } } }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { 
+                        stacked: true, // Esto hace que sea un gráfico de áreas APILADAS
+                        beginAtZero: true,
+                        ticks: { callback: function(value) { return '$' + value.toLocaleString('es-AR'); } }
+                    }
+                }
+            }
+        });
+    }
+
+    // Carga de tablas individuales
     async function cargarTabla(hoja) {
         const tbody = document.getElementById(`tabla_${hoja}`);
-        // Ajustado a colspan 7 por la nueva columna
         let colCount = hoja === 'Mantenimiento' ? 7 : (hoja === 'VTV_Documentacion' ? 6 : 5);
         tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center"><div class="spinner-border spinner-border-sm"></div></td></tr>`;
         
@@ -374,10 +461,11 @@
                 const btnX = `<button class="btn-delete" onclick="borrarRegistro('${fila.ID_Servicio}', '${hoja}')" title="Eliminar">❌</button>`;
                 
                 if(hoja === 'Mantenimiento') {
-                    // Agregada la columna de Prox_Rev_Km con un badge azul
                     tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td>${fila.Categoría} (${fila.SubCategoria})</td><td>${fila.Km}</td><td><span class="badge bg-info text-dark">${fila.Prox_Rev_Km || '-'}</span></td><td><span class="badge bg-warning text-dark">${formatearFecha(fila.Prox_Rev_Fecha)}</span></td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td>${btnX}</td>`;
                 } else if(hoja === 'Gastos_Corrientes') {
-                    tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td>${fila.Categoría}</td><td>${fila.SubCategoria}</td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td>${btnX}</td>`;
+                    // Agregamos un emoji visual si es Combustible
+                    const icono = fila.Categoría === 'Combustible' ? '⛽ ' : '';
+                    tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td>${icono}${fila.Categoría}</td><td>${fila.SubCategoria}</td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td>${btnX}</td>`;
                 } else if(hoja === 'VTV_Documentacion') {
                     const colorRes = fila.Resultado === 'Aprobado' ? 'text-success' : (fila.Resultado === 'Rechazado' ? 'text-danger' : 'text-warning');
                     tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td>${fila.Categoría}</td><td class="fw-bold ${colorRes}">${fila.Resultado}</td><td class="text-danger fw-bold">${formatearFecha(fila.Prox_Rev_Fecha)}</td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td>${btnX}</td>`;
@@ -387,7 +475,7 @@
         } catch (e) { tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-danger text-center">Error de carga.</td></tr>`; }
     }
 
-    // Alertas por KM y por FECHA
+    // Alertas 
     async function analizarAlertas(forzarActualizacion = true) {
         const kmInput = document.getElementById('kmInput').value;
         if(forzarActualizacion) {
