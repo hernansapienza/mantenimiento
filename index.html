@@ -5,13 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Control Vehicular - AC 064 PP</title>
     
+    <link rel="manifest" id="manifestLink">
+    
     <meta name="theme-color" content="#121212">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Mi Argo">
-    
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚗</text></svg>">
-    
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3202/3202003.png">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,7 +20,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        body { background-color: #121212; font-family: 'Inter', sans-serif; font-size: 0.9rem; color: #e0e0e0; }
+        body { background-color: #121212; font-family: 'Inter', sans-serif; font-size: 0.9rem; color: #e0e0e0; overscroll-behavior-y: contain; }
 
         .sidebar { height: 100vh; background: #181818; border-right: 1px solid #2d2d2d; padding: 20px; position: fixed; width: 280px; z-index: 1000; }
         .sidebar h4 { color: #0dcaf0; font-weight: 700; margin-bottom: 15px; text-align: center; font-size: 1.2rem; }
@@ -41,7 +40,6 @@
         .card { background-color: #1e1e1e; border: 1px solid #2d2d2d; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
         .card-header { background-color: transparent; border-bottom: 1px solid #2d2d2d; font-weight: 600; }
         
-        /* Estilos específicos para KPIs */
         .kpi-card { background: linear-gradient(145deg, #1e1e1e, #1a1a1a); border: 1px solid #333; transition: transform 0.2s; }
         .kpi-card:hover { transform: translateY(-3px); border-color: #444; }
         .kpi-value { font-size: 1.6rem; font-weight: 700; margin-bottom: 0; letter-spacing: -0.5px; }
@@ -90,6 +88,10 @@
 
 <div class="sidebar">
     <h4>🚗 Garage Virtual</h4>
+    
+    <button id="btnInstalarApp" class="btn btn-warning w-100 mb-3 fw-bold shadow-sm" style="display: none; color: #000;" onclick="instalarAppPWA()">
+        📲 Instalar como App
+    </button>
     
     <div class="vehicle-info lh-lg">
         <div class="mb-1"><strong>Marca:</strong> Fiat</div>
@@ -372,6 +374,57 @@
     const VEHICULO_ID = "V-01";
     const ITEMS_POR_PAGINA = 15;
     
+    // =========================================================
+    // INYECCIÓN MÁGICA DE PWA (Manifest + Service Worker)
+    // =========================================================
+    const iconUrl = "https://cdn-icons-png.flaticon.com/512/3202/3202003.png"; // Podes cambiar tu icono acá
+    
+    // 1. Crear el Manifest al vuelo
+    const manifestJson = {
+        "name": "Control Vehicular",
+        "short_name": "Mi Argo",
+        "start_url": window.location.href,
+        "display": "standalone",
+        "background_color": "#121212",
+        "theme_color": "#121212",
+        "icons": [{ "src": iconUrl, "sizes": "512x512", "type": "image/png" }]
+    };
+    const blobManifest = new Blob([JSON.stringify(manifestJson)], {type: 'application/manifest+json'});
+    document.getElementById('manifestLink').setAttribute('href', URL.createObjectURL(blobManifest));
+
+    // 2. Crear y registrar un Service Worker falso (Requisito de Chrome)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            const swCode = `
+                self.addEventListener('install', (e) => { self.skipWaiting(); });
+                self.addEventListener('fetch', (e) => { }); // Dummy fetch
+            `;
+            const blobSW = new Blob([swCode], { type: 'application/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(blobSW));
+        });
+    }
+
+    // 3. Capturar evento para mostrar nuestro botón de instalar
+    let eventoInstalacion = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        eventoInstalacion = e;
+        document.getElementById('btnInstalarApp').style.display = 'block'; // Muestra el botón mágico
+    });
+
+    function instalarAppPWA() {
+        if (eventoInstalacion) {
+            eventoInstalacion.prompt();
+            eventoInstalacion.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    document.getElementById('btnInstalarApp').style.display = 'none';
+                }
+                eventoInstalacion = null;
+            });
+        }
+    }
+    // =========================================================
+
     let miGrafico = null;
     let dataGlobal = { 'Mantenimiento': [], 'Gastos_Corrientes': [], 'VTV_Documentacion': [] };
     let paginas = { 'Mantenimiento': 1, 'Gastos_Corrientes': 1, 'VTV_Documentacion': 1 };
@@ -474,7 +527,6 @@
         `).join('');
     }
 
-    // --- CÁLCULO DE KPIs TRIMESTRALES Y DASHBOARD ---
     async function cargarResumenDashboard() {
         try {
             const [reqM, reqG, reqV] = await Promise.all([ fetch(`${GAS_URL}?hoja=Mantenimiento`), fetch(`${GAS_URL}?hoja=Gastos_Corrientes`), fetch(`${GAS_URL}?hoja=VTV_Documentacion`) ]);
@@ -495,8 +547,7 @@
     }
 
     function calcularMetricas(dataM, dataG, dataV) {
-        let totalCombus3m = 0, totalFijos3m = 0, total3m = 0;
-        let totalMesActual = 0;
+        let totalCombus3m = 0, totalFijos3m = 0, total3m = 0, totalMesActual = 0;
         let mesesUnicos = new Set();
         
         const hoy = new Date();
@@ -515,7 +566,6 @@
                 if(d.getMonth() === mesActual && d.getFullYear() === anioActual) {
                     totalMesActual += costo;
                 }
-                
                 if (d >= hace90Dias && d <= hoy) {
                     mesesUnicos.add(`${d.getMonth()}-${d.getFullYear()}`);
                     total3m += costo;
@@ -532,10 +582,6 @@
         let divisor = Math.max(1, mesesUnicos.size);
         divisor = Math.min(3, divisor);
 
-        const promTotal = total3m / divisor;
-        const promCombus = totalCombus3m / divisor;
-        const promFijos = totalFijos3m / divisor;
-
         document.getElementById('kpiContainer').innerHTML = `
             <div class="col-6 col-md-3 mb-3">
                 <div class="card kpi-card h-100 text-center p-3 shadow-sm rounded-4 border-info">
@@ -546,19 +592,19 @@
             <div class="col-6 col-md-3 mb-3">
                 <div class="card kpi-card h-100 text-center p-3 shadow-sm rounded-4">
                     <div class="kpi-label">Prom. Total (Últ 3m)</div>
-                    <div class="kpi-value text-white">${formatPlata(promTotal)}</div>
+                    <div class="kpi-value text-white">${formatPlata(total3m / divisor)}</div>
                 </div>
             </div>
             <div class="col-6 col-md-3 mb-3">
                 <div class="card kpi-card h-100 text-center p-3 shadow-sm rounded-4">
                     <div class="kpi-label text-warning">⛽ Prom. Combus. (3m)</div>
-                    <div class="kpi-value text-white">${formatPlata(promCombus)}</div>
+                    <div class="kpi-value text-white">${formatPlata(totalCombus3m / divisor)}</div>
                 </div>
             </div>
             <div class="col-6 col-md-3 mb-3">
                 <div class="card kpi-card h-100 text-center p-3 shadow-sm rounded-4">
                     <div class="kpi-label text-success">🛡️ Prom. Fijos (3m)</div>
-                    <div class="kpi-value text-white">${formatPlata(promFijos)}</div>
+                    <div class="kpi-value text-white">${formatPlata(totalFijos3m / divisor)}</div>
                 </div>
             </div>
         `;
@@ -582,9 +628,7 @@
             });
         };
 
-        procesarData(dataM, 'manto');
-        procesarData(dataG, 'gastos', true);
-        procesarData(dataV, 'vtv');
+        procesarData(dataM, 'manto'); procesarData(dataG, 'gastos', true); procesarData(dataV, 'vtv');
 
         const mesesOrdenados = Object.keys(agrupar).sort((a, b) => agrupar[a].fData - agrupar[b].fData);
         
@@ -603,14 +647,8 @@
             },
             options: {
                 responsive: true, maintainAspectRatio: false, color: '#aaa',
-                plugins: { 
-                    tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': $' + c.parsed.y.toLocaleString('es-AR'); } } },
-                    legend: { labels: { color: '#e0e0e0', font: { family: 'Inter' } } }
-                },
-                scales: { 
-                    x: { grid: { display: false }, ticks: { color: '#aaa', font: { family: 'Inter' } } }, 
-                    y: { stacked: true, beginAtZero: true, grid: { color: '#2d2d2d' }, ticks: { color: '#aaa', font: { family: 'Inter' }, callback: function(v) { return '$' + v.toLocaleString('es-AR'); } } } 
-                }
+                plugins: { tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': $' + c.parsed.y.toLocaleString('es-AR'); } } }, legend: { labels: { color: '#e0e0e0', font: { family: 'Inter' } } } },
+                scales: { x: { grid: { display: false }, ticks: { color: '#aaa', font: { family: 'Inter' } } }, y: { stacked: true, beginAtZero: true, grid: { color: '#2d2d2d' }, ticks: { color: '#aaa', font: { family: 'Inter' }, callback: function(v) { return '$' + v.toLocaleString('es-AR'); } } } }
             }
         });
 
@@ -619,21 +657,14 @@
         tbodyTotales.innerHTML = '';
         
         if(mesesRecientes.length === 0) {
-            tbodyTotales.innerHTML = '<tr><td colspan="2" class="text-center text-muted">Aún no hay gastos registrados</td></tr>';
-            return;
+            tbodyTotales.innerHTML = '<tr><td colspan="2" class="text-center text-muted">Aún no hay gastos registrados</td></tr>'; return;
         }
 
         mesesRecientes.forEach(mes => {
-            tbodyTotales.innerHTML += `
-                <tr>
-                    <td class="fw-bold text-light">${mes}</td>
-                    <td class="text-end"><strong class="text-success">${formatPlata(agrupar[mes].total)}</strong></td>
-                </tr>
-            `;
+            tbodyTotales.innerHTML += `<tr><td class="fw-bold text-light">${mes}</td><td class="text-end"><strong class="text-success">${formatPlata(agrupar[mes].total)}</strong></td></tr>`;
         });
     }
 
-    // --- TABLAS CRUD ---
     async function cargarYRenderizarTabla(hoja) {
         const tbody = document.getElementById(`tabla_${hoja}`);
         let colCount = hoja === 'Mantenimiento' ? 8 : (hoja === 'VTV_Documentacion' ? 6 : 5);
@@ -701,7 +732,6 @@
         });
     }
 
-    // --- ALERTAS ---
     async function analizarAlertas(forzarActualizacion = true) {
         const kmInput = document.getElementById('kmInput').value;
         if(forzarActualizacion) {
