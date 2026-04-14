@@ -378,26 +378,38 @@
         if(kmGuardado) analizarAlertas(false);
     };
 
-    // Utils
+    // --- NUEVO: PARSEADOR INTELIGENTE DE FECHAS (RESUELVE EL BUG DE ABRIL) ---
+    function parseLocalDate(fechaStr) {
+        if (!fechaStr) return null;
+        // Si viene con formato ISO (de Google Sheets T00:00:00)
+        if (fechaStr.includes('T')) { 
+            let p = fechaStr.split('T')[0].split('-'); 
+            return new Date(p[0], parseInt(p[1])-1, p[2]); 
+        }
+        // Si viene en formato Argentino DD/MM/YYYY
+        if (fechaStr.includes('/')) { 
+            let p = fechaStr.split('/'); 
+            if(p.length === 3 && p[2].length === 4) return new Date(p[2], parseInt(p[1])-1, p[0]); 
+        }
+        // Fallback genérico
+        let d = new Date(fechaStr); 
+        return isNaN(d) ? null : d;
+    }
+
     function formatearFecha(fechaStr) {
-        if (!fechaStr) return '-';
-        if (fechaStr.includes('T')) { const partes = fechaStr.split('T')[0].split('-'); return `${partes[2]}/${partes[1]}/${partes[0]}`; }
-        const d = new Date(fechaStr);
-        if (!isNaN(d)) return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-        return fechaStr;
+        let d = parseLocalDate(fechaStr);
+        if (!d) return '-';
+        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
     }
 
     function getSafeDate(fechaStr) {
-        if (!fechaStr) return 0;
-        if (fechaStr.includes('T')) return new Date(fechaStr).getTime();
-        if (fechaStr.includes('/')) { let p = fechaStr.split('/'); if(p.length === 3 && p[2].length === 4) return new Date(`${p[2]}-${p[1]}-${p[0]}T00:00:00`).getTime(); }
-        let d = new Date(fechaStr); return isNaN(d) ? 0 : d.getTime();
+        let d = parseLocalDate(fechaStr);
+        return d ? d.getTime() : 0;
     }
 
     function extraerMesAnio(fechaStr) {
-        if (!fechaStr) return null;
-        let d = new Date(fechaStr); if (fechaStr.includes('T')) d = new Date(fechaStr.split('T')[0]);
-        if (isNaN(d)) return null;
+        let d = parseLocalDate(fechaStr);
+        if (!d) return null;
         const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
         return `${meses[d.getMonth()]} ${d.getFullYear()}`;
     }
@@ -456,7 +468,7 @@
         `).join('');
     }
 
-    // --- CÁLCULO DE KPIs Y RENDERIZADO DEL DASHBOARD ---
+    // --- CÁLCULO DE KPIs TRIMESTRALES Y DASHBOARD ---
     async function cargarResumenDashboard() {
         try {
             const [reqM, reqG, reqV] = await Promise.all([ fetch(`${GAS_URL}?hoja=Mantenimiento`), fetch(`${GAS_URL}?hoja=Gastos_Corrientes`), fetch(`${GAS_URL}?hoja=VTV_Documentacion`) ]);
@@ -465,13 +477,9 @@
             let dataG = await reqG.json(); dataG.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
             let dataV = await reqV.json(); dataV.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
             
-            // 1. Calcular KPIs
             calcularMetricas(dataM, dataG, dataV);
-
-            // 2. Gráfico y Tabla Mensual
             generarGraficoYTabla(dataM, dataG, dataV);
 
-            // 3. Tarjetas de Últimos Trabajos
             document.getElementById('dashboardCards').innerHTML = `
                 <div class="col-md-4 mb-3"><div class="card h-100 border-0 border-start border-primary border-4"><div class="card-body"><h6 class="text-primary fw-bold mb-3">🛠️ Mantenimientos</h6>${armarMiniLista(dataM.slice(0, 3))}</div></div></div>
                 <div class="col-md-4 mb-3"><div class="card h-100 border-0 border-start border-success border-4"><div class="card-body"><h6 class="text-success fw-bold mb-3">💸 Gastos</h6>${armarMiniLista(dataG.slice(0, 3))}</div></div></div>
@@ -481,43 +489,51 @@
     }
 
     function calcularMetricas(dataM, dataG, dataV) {
-        let totalCombus = 0, totalManto = 0, totalFijos = 0, totalMesActual = 0, totalHistorico = 0;
-        let fechasArray = [];
+        let totalCombus3m = 0, totalFijos3m = 0, total3m = 0;
+        let totalMesActual = 0;
+        let mesesUnicos = new Set();
         
         const hoy = new Date();
+        hoy.setHours(0,0,0,0);
         const mesActual = hoy.getMonth();
         const anioActual = hoy.getFullYear();
+        
+        // Ventana de tiempo: 90 días hacia atrás
+        const hace90Dias = new Date(hoy);
+        hace90Dias.setDate(hoy.getDate() - 90);
 
         const procesar = (item, tipo) => {
             const costo = parseFloat(item.Costo) || 0;
-            if(costo > 0 && item.Fecha) {
-                const d = new Date(getSafeDate(item.Fecha));
-                fechasArray.push(d);
-                totalHistorico += costo;
+            const d = parseLocalDate(item.Fecha);
+            
+            if(costo > 0 && d) {
+                // Sumar al mes en curso (Gasto de este mes exacto)
+                if(d.getMonth() === mesActual && d.getFullYear() === anioActual) {
+                    totalMesActual += costo;
+                }
                 
-                if(tipo === 'Combus') totalCombus += costo;
-                else if(tipo === 'Manto') totalManto += costo;
-                else totalFijos += costo;
-
-                if(d.getMonth() === mesActual && d.getFullYear() === anioActual) totalMesActual += costo;
+                // Promedio Trimestral (solo miramos la ventana de 90 días)
+                if (d >= hace90Dias && d <= hoy) {
+                    mesesUnicos.add(`${d.getMonth()}-${d.getFullYear()}`);
+                    total3m += costo;
+                    if(tipo === 'Combus') totalCombus3m += costo;
+                    else if(tipo === 'Fijo') totalFijos3m += costo; 
+                }
             }
         };
 
-        dataM.forEach(i => procesar(i, 'Manto'));
+        // Procesamos todos los arrays
+        dataM.forEach(i => procesar(i, 'Manto')); 
         dataV.forEach(i => procesar(i, 'Fijo'));
         dataG.forEach(i => procesar(i, i.Categoría === 'Combustible' ? 'Combus' : 'Fijo'));
 
-        // Calcular cantidad de meses desde el primer registro
-        let mesesActivos = 1;
-        if(fechasArray.length > 0) {
-            const minDate = new Date(Math.min(...fechasArray));
-            mesesActivos = (hoy.getFullYear() - minDate.getFullYear()) * 12 + (hoy.getMonth() - minDate.getMonth()) + 1;
-            if(mesesActivos < 1) mesesActivos = 1;
-        }
+        // Dividimos por la cantidad de meses que realmente tuvieron actividad (máximo 3)
+        let divisor = Math.max(1, mesesUnicos.size);
+        divisor = Math.min(3, divisor);
 
-        const promTotal = totalHistorico / mesesActivos;
-        const promCombus = totalCombus / mesesActivos;
-        const promFijos = totalFijos / mesesActivos;
+        const promTotal = total3m / divisor;
+        const promCombus = totalCombus3m / divisor;
+        const promFijos = totalFijos3m / divisor;
 
         document.getElementById('kpiContainer').innerHTML = `
             <div class="col-6 col-md-3 mb-3">
@@ -528,19 +544,19 @@
             </div>
             <div class="col-6 col-md-3 mb-3">
                 <div class="card kpi-card h-100 text-center p-3 shadow-sm rounded-4">
-                    <div class="kpi-label">Promedio / Mes Total</div>
+                    <div class="kpi-label">Prom. Total (Últ 3m)</div>
                     <div class="kpi-value text-white">${formatPlata(promTotal)}</div>
                 </div>
             </div>
             <div class="col-6 col-md-3 mb-3">
                 <div class="card kpi-card h-100 text-center p-3 shadow-sm rounded-4">
-                    <div class="kpi-label text-warning">⛽ Prom. Combustible</div>
+                    <div class="kpi-label text-warning">⛽ Prom. Combus. (3m)</div>
                     <div class="kpi-value text-white">${formatPlata(promCombus)}</div>
                 </div>
             </div>
             <div class="col-6 col-md-3 mb-3">
                 <div class="card kpi-card h-100 text-center p-3 shadow-sm rounded-4">
-                    <div class="kpi-label text-success">🛡️ Prom. Fijos (Seg/Pat)</div>
+                    <div class="kpi-label text-success">🛡️ Prom. Fijos (3m)</div>
                     <div class="kpi-value text-white">${formatPlata(promFijos)}</div>
                 </div>
             </div>
@@ -554,7 +570,7 @@
                 const mes = extraerMesAnio(item.Fecha);
                 const costo = parseFloat(item.Costo) || 0;
                 if(mes && costo > 0) {
-                    if(!agrupar[mes]) agrupar[mes] = { manto: 0, gastos: 0, combus: 0, vtv: 0, total: 0, fData: new Date(item.Fecha) };
+                    if(!agrupar[mes]) agrupar[mes] = { manto: 0, gastos: 0, combus: 0, vtv: 0, total: 0, fData: parseLocalDate(item.Fecha) };
                     
                     if(esCombustible && item.Categoría === 'Combustible') agrupar[mes].combus += costo;
                     else if (esCombustible && item.Categoría !== 'Combustible') agrupar[mes].gastos += costo;
@@ -569,10 +585,8 @@
         procesarData(dataG, 'gastos', true);
         procesarData(dataV, 'vtv');
 
-        // Ordenar del más viejo al más nuevo para el GRÁFICO
         const mesesOrdenados = Object.keys(agrupar).sort((a, b) => agrupar[a].fData - agrupar[b].fData);
         
-        // 1. DIBUJAR GRÁFICO
         const ctx = document.getElementById('costosChart').getContext('2d');
         if (miGrafico) miGrafico.destroy(); 
         miGrafico = new Chart(ctx, {
@@ -599,7 +613,7 @@
             }
         });
 
-        // 2. LLENAR TABLA DE TOTALES (Orden inverso: más nuevo primero)
+        // Llenar tabla de totales invertida
         const mesesRecientes = [...mesesOrdenados].reverse();
         const tbodyTotales = document.getElementById('tablaTotalesMensuales');
         tbodyTotales.innerHTML = '';
@@ -619,7 +633,7 @@
         });
     }
 
-    // --- FUNCIONES DE TABLA CRUD ---
+    // --- TABLAS CRUD ---
     async function cargarYRenderizarTabla(hoja) {
         const tbody = document.getElementById(`tabla_${hoja}`);
         let colCount = hoja === 'Mantenimiento' ? 8 : (hoja === 'VTV_Documentacion' ? 6 : 5);
@@ -716,7 +730,7 @@
                     else if(diffKm <= 1500) alertasHTML += `<div class="alert alert-warning shadow-sm border-0 text-dark">⚠️ <strong>PRÓXIMO POR KM:</strong> ${item.Categoría} toca en ${diffKm} km.</div>`;
                 }
                 if(item.Prox_Rev_Fecha) {
-                    const fRev = new Date(item.Prox_Rev_Fecha); const diffDias = Math.ceil((fRev - hoy) / (1000 * 60 * 60 * 24));
+                    const fRev = parseLocalDate(item.Prox_Rev_Fecha); const diffDias = Math.ceil((fRev - hoy) / (1000 * 60 * 60 * 24));
                     if(diffDias < 0) alertasHTML += `<div class="alert alert-danger shadow-sm border-0">⏰ <strong>FECHA VENCIDA:</strong> ${item.Categoría} venció el ${formatearFecha(item.Prox_Rev_Fecha)}.</div>`;
                     else if(diffDias <= 30) alertasHTML += `<div class="alert alert-warning shadow-sm border-0 text-dark">📅 <strong>PRÓXIMO POR FECHA:</strong> ${item.Categoría} vence en ${diffDias} días.</div>`;
                 }
@@ -724,7 +738,7 @@
 
             Object.values(ultimosV).forEach(item => {
                 if(item.Prox_Rev_Fecha) {
-                    const fRev = new Date(item.Prox_Rev_Fecha); const diffDias = Math.ceil((fRev - hoy) / (1000 * 60 * 60 * 24));
+                    const fRev = parseLocalDate(item.Prox_Rev_Fecha); const diffDias = Math.ceil((fRev - hoy) / (1000 * 60 * 60 * 24));
                     if(diffDias < 0) alertasHTML += `<div class="alert alert-danger shadow-sm border-0">🚓 <strong>VTV VENCIDA:</strong> Venció el ${formatearFecha(item.Prox_Rev_Fecha)}.</div>`;
                     else if(diffDias <= 30) alertasHTML += `<div class="alert alert-warning shadow-sm border-0 text-dark">📄 <strong>VTV PRÓXIMA:</strong> Vence en ${diffDias} días.</div>`;
                 }
