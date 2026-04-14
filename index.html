@@ -18,7 +18,7 @@
         body { 
             background-color: #121212; 
             font-family: 'Inter', sans-serif; 
-            font-size: 0.9rem; /* Fuente sutilmente más chica */
+            font-size: 0.9rem; 
             color: #e0e0e0;
         }
 
@@ -29,7 +29,7 @@
             border-right: 1px solid #2d2d2d; 
             padding: 20px; 
             position: fixed; 
-            width: 280px; /* Un poco más ancho para los datos */
+            width: 280px; 
             z-index: 1000; 
         }
         .sidebar h4 { color: #0dcaf0; font-weight: 700; margin-bottom: 15px; text-align: center; font-size: 1.2rem; }
@@ -78,9 +78,13 @@
         .form-control:focus, .form-select:focus { background-color: #2a2a2a; border-color: #0d6efd; box-shadow: none; color: #fff; }
         .form-label { font-size: 0.85rem; color: #aaa; }
         
+        /* CORRECCIÓN VISUAL: Verdes más brillantes para Modo Oscuro */
+        .text-success { color: #51cf66 !important; }
+        
         /* Botones y Badges */
-        .btn-success { background-color: #198754; border: none; font-weight: 600; letter-spacing: 0.5px; }
-        .btn-delete { color: #dc3545; background: none; border: none; font-weight: bold; cursor: pointer; padding: 0 5px; opacity: 0.8; transition: 0.2s; }
+        .btn-success { background-color: #198754; border: none; font-weight: 600; letter-spacing: 0.5px; color: white; }
+        .btn-success:hover { background-color: #146c43; color: white; }
+        .btn-delete { color: #ff6b6b; background: none; border: none; font-weight: bold; cursor: pointer; padding: 0 5px; opacity: 0.8; transition: 0.2s; }
         .btn-delete:hover { opacity: 1; transform: scale(1.2); }
         .badge { font-weight: 500; letter-spacing: 0.5px; }
         
@@ -546,7 +550,7 @@
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                color: '#aaa', // Color del texto del gráfico
+                color: '#aaa',
                 plugins: { 
                     tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': $' + c.parsed.y.toLocaleString('es-AR'); } } },
                     legend: { labels: { color: '#e0e0e0', font: { family: 'Inter' } } }
@@ -555,7 +559,7 @@
                     x: { grid: { display: false }, ticks: { color: '#aaa', font: { family: 'Inter' } } }, 
                     y: { 
                         stacked: true, beginAtZero: true, 
-                        grid: { color: '#2d2d2d' }, // Líneas de fondo oscuras
+                        grid: { color: '#2d2d2d' },
                         ticks: { color: '#aaa', font: { family: 'Inter' }, callback: function(v) { return '$' + v.toLocaleString('es-AR'); } } 
                     } 
                 }
@@ -563,7 +567,7 @@
         });
     }
 
-    // Funciones de Tabla (Paginación y Filtros)
+    // Funciones de Tabla
     async function cargarYRenderizarTabla(hoja) {
         const tbody = document.getElementById(`tabla_${hoja}`);
         let colCount = hoja === 'Mantenimiento' ? 8 : (hoja === 'VTV_Documentacion' ? 6 : 5);
@@ -661,7 +665,7 @@
         });
     }
 
-    // Alertas (Leyendo solo el último registro por categoría)
+    // Alertas 
     async function analizarAlertas(forzarActualizacion = true) {
         const kmInput = document.getElementById('kmInput').value;
         if(forzarActualizacion) {
@@ -694,13 +698,13 @@
                 if(item.Prox_Rev_Km) {
                     const diffKm = parseInt(item.Prox_Rev_Km) - parseInt(kmInput);
                     if(diffKm <= 0) alertasHTML += `<div class="alert alert-danger shadow-sm border-0">🚨 <strong>KM VENCIDO:</strong> ${item.Categoría} (${item.SubCategoria}) debió hacerse a los ${item.Prox_Rev_Km} km.</div>`;
-                    else if(diffKm <= 1500) alertasHTML += `<div class="alert alert-warning shadow-sm border-0 text-dark">⚠️ <strong>PRÓXIMO POR KM:</strong> ${item.Categoría} toca en ${diffKm} km.</div>`;
+                    else if(diffKm <= 1500) alertasHTML += `<div class="alert alert-warning shadow-sm border-0">⚠️ <strong>PRÓXIMO POR KM:</strong> ${item.Categoría} toca en ${diffKm} km.</div>`;
                 }
                 if(item.Prox_Rev_Fecha) {
                     const fRev = new Date(item.Prox_Rev_Fecha);
                     const diffDias = Math.ceil((fRev - hoy) / (1000 * 60 * 60 * 24));
                     if(diffDias < 0) alertasHTML += `<div class="alert alert-danger shadow-sm border-0">⏰ <strong>FECHA VENCIDA:</strong> ${item.Categoría} venció el ${formatearFecha(item.Prox_Rev_Fecha)}.</div>`;
-                    else if(diffDias <= 30) alertasHTML += `<div class="alert alert-warning shadow-sm border-0 text-dark">📅 <strong>PRÓXIMO POR FECHA:</strong> ${item.Categoría} vence en ${diffDias} días.</div>`;
+                    else if(diffDias <= 30) alertasHTML += `<div class="alert alert-warning shadow-sm border-0">📅 <strong>PRÓXIMO POR FECHA:</strong> ${item.Categoría} vence en ${diffDias} días.</div>`;
                 }
             });
 
@@ -709,11 +713,12 @@
                     const fRev = new Date(item.Prox_Rev_Fecha);
                     const diffDias = Math.ceil((fRev - hoy) / (1000 * 60 * 60 * 24));
                     if(diffDias < 0) alertasHTML += `<div class="alert alert-danger shadow-sm border-0">🚓 <strong>VTV VENCIDA:</strong> Venció el ${formatearFecha(item.Prox_Rev_Fecha)}.</div>`;
-                    else if(diffDias <= 30) alertasHTML += `<div class="alert alert-warning shadow-sm border-0 text-dark">📄 <strong>VTV PRÓXIMA:</strong> Vence en ${diffDias} días.</div>`;
+                    else if(diffDias <= 30) alertasHTML += `<div class="alert alert-warning shadow-sm border-0">📄 <strong>VTV PRÓXIMA:</strong> Vence en ${diffDias} días.</div>`;
                 }
             });
 
-            box.innerHTML = alertasHTML || `<div class="alert alert-success shadow-sm border-0 text-dark">✅ <strong>¡Todo al día!</strong> No hay alertas de KM ni de Fechas en tu Argo.</div>`;
+            // Se quitó el "text-dark" para que el texto sea claro por defecto sobre el fondo verde de la alerta
+            box.innerHTML = alertasHTML || `<div class="alert alert-success shadow-sm border-0">✅ <strong>¡Todo al día!</strong> No hay alertas de KM ni de Fechas en tu Argo.</div>`;
         } catch (e) { box.innerHTML = '<div class="alert alert-danger border-0">Error de lectura de datos.</div>'; }
     }
 
