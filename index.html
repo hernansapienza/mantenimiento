@@ -24,8 +24,8 @@
         .small-list { font-size: 0.85rem; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; }
         .small-list:last-child { border-bottom: none; }
         #loadingOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 2000; text-align: center; padding-top: 20%; }
-        /* Contenedor del gráfico para que sea responsive */
         .chart-container { position: relative; height: 300px; width: 100%; }
+        .table-controls { background-color: #fdfdfd; border-bottom: 1px solid #eaeaea; border-top-left-radius: 12px; border-top-right-radius: 12px; }
         @media (max-width: 768px) {
             .sidebar { height: auto; width: 100%; position: relative; padding: 10px; }
             .main-content { margin-left: 0; padding: 15px; }
@@ -134,12 +134,27 @@
                 </form>
             </div>
         </div>
+        
         <div class="card shadow-sm">
+            <div class="d-flex flex-wrap justify-content-between align-items-center p-3 table-controls">
+                <div class="d-flex align-items-center mb-2 mb-md-0">
+                    <label class="me-2 fw-bold small text-muted">Filtrar:</label>
+                    <select id="filtro_Mantenimiento" class="form-select form-select-sm w-auto" onchange="aplicarFiltro('Mantenimiento')">
+                        <option value="">Todas las categorías</option>
+                    </select>
+                </div>
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="cambiarPagina('Mantenimiento', -1)">◀</button>
+                    <span id="pageInfo_Mantenimiento" class="mx-3 small fw-bold text-muted">Pág 1 / 1</span>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="cambiarPagina('Mantenimiento', 1)">▶</button>
+                </div>
+            </div>
+            
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
                         <thead class="table-light">
-                            <tr><th>Fecha</th><th>Detalle</th><th>Km</th><th>Próx. Km</th><th>Próx. Fecha</th><th>Costo</th><th></th></tr>
+                            <tr><th>Fecha</th><th>Categoría</th><th>Detalle</th><th>Km</th><th>Próx. Km</th><th>Próx. Fecha</th><th>Costo</th><th></th></tr>
                         </thead>
                         <tbody id="tabla_Mantenimiento"></tbody>
                     </table>
@@ -180,7 +195,22 @@
                 </form>
             </div>
         </div>
+        
         <div class="card shadow-sm">
+            <div class="d-flex flex-wrap justify-content-between align-items-center p-3 table-controls">
+                <div class="d-flex align-items-center mb-2 mb-md-0">
+                    <label class="me-2 fw-bold small text-muted">Filtrar:</label>
+                    <select id="filtro_Gastos_Corrientes" class="form-select form-select-sm w-auto" onchange="aplicarFiltro('Gastos_Corrientes')">
+                        <option value="">Todas las categorías</option>
+                    </select>
+                </div>
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="cambiarPagina('Gastos_Corrientes', -1)">◀</button>
+                    <span id="pageInfo_Gastos_Corrientes" class="mx-3 small fw-bold text-muted">Pág 1 / 1</span>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="cambiarPagina('Gastos_Corrientes', 1)">▶</button>
+                </div>
+            </div>
+            
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
@@ -233,7 +263,22 @@
                 </form>
             </div>
         </div>
+        
         <div class="card shadow-sm">
+            <div class="d-flex flex-wrap justify-content-between align-items-center p-3 table-controls">
+                <div class="d-flex align-items-center mb-2 mb-md-0">
+                    <label class="me-2 fw-bold small text-muted">Filtrar:</label>
+                    <select id="filtro_VTV_Documentacion" class="form-select form-select-sm w-auto" onchange="aplicarFiltro('VTV_Documentacion')">
+                        <option value="">Todas las categorías</option>
+                    </select>
+                </div>
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="cambiarPagina('VTV_Documentacion', -1)">◀</button>
+                    <span id="pageInfo_VTV_Documentacion" class="mx-3 small fw-bold text-muted">Pág 1 / 1</span>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="cambiarPagina('VTV_Documentacion', 1)">▶</button>
+                </div>
+            </div>
+
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
@@ -252,9 +297,14 @@
     // --- TU CONFIGURACIÓN AQUÍ ---
     const GAS_URL = "https://script.google.com/macros/s/AKfycbz7q0_NMZwI8YqZEhKiZOGqLSZQl_m4mJSRQg4DFITDV58D8PkZxJIsNU1DcVEZZOXS/exec"; // REEMPLAZAR
     const VEHICULO_ID = "V-01";
+    const ITEMS_POR_PAGINA = 15;
     
-    // Variable global para almacenar el gráfico y poder actualizarlo
     let miGrafico = null;
+    
+    // Almacenamiento en memoria para orden, filtros y paginación
+    let dataGlobal = { 'Mantenimiento': [], 'Gastos_Corrientes': [], 'VTV_Documentacion': [] };
+    let paginas = { 'Mantenimiento': 1, 'Gastos_Corrientes': 1, 'VTV_Documentacion': 1 };
+    let filtros = { 'Mantenimiento': '', 'Gastos_Corrientes': '', 'VTV_Documentacion': '' };
 
     // Al cargar
     window.onload = () => { 
@@ -277,6 +327,18 @@
         const d = new Date(fechaStr);
         if (!isNaN(d)) return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
         return fechaStr;
+    }
+
+    // Convertidor seguro de fechas para ordenamiento cronológico
+    function getSafeDate(fechaStr) {
+        if (!fechaStr) return 0;
+        if (fechaStr.includes('T')) return new Date(fechaStr).getTime();
+        if (fechaStr.includes('/')) {
+            let p = fechaStr.split('/');
+            if(p.length === 3 && p[2].length === 4) return new Date(`${p[2]}-${p[1]}-${p[0]}T00:00:00`).getTime();
+        }
+        let d = new Date(fechaStr);
+        return isNaN(d) ? 0 : d.getTime();
     }
 
     function extraerMesAnio(fechaStr) {
@@ -302,29 +364,24 @@
         if(link) link.classList.add('active');
 
         if(id === 'dashboard') cargarResumenDashboard();
-        else cargarTabla(id === 'gastos' ? 'Gastos_Corrientes' : (id === 'vtv' ? 'VTV_Documentacion' : 'Mantenimiento'));
+        else cargarYRenderizarTabla(id === 'gastos' ? 'Gastos_Corrientes' : (id === 'vtv' ? 'VTV_Documentacion' : 'Mantenimiento'));
     }
 
     // Backend: Insertar
     async function procesarEnvio(event, hoja) {
         event.preventDefault();
         mostrarCarga("Guardando en Google Sheets...");
-        
         const idServ = "S-" + Date.now();
         let valores = [];
 
-        if(hoja === 'Mantenimiento') {
-            valores = [idServ, VEHICULO_ID, document.getElementById('m_cat').value, document.getElementById('m_sub').value, document.getElementById('m_fec').value, document.getElementById('m_km').value, document.getElementById('m_prox_km').value, document.getElementById('m_prox_fec').value, document.getElementById('m_costo').value];
-        } else if(hoja === 'Gastos_Corrientes') {
-            valores = [idServ, VEHICULO_ID, document.getElementById('g_cat').value, document.getElementById('g_sub').value, document.getElementById('g_fec').value, document.getElementById('g_costo').value];
-        } else if(hoja === 'VTV_Documentacion') {
-            valores = [idServ, VEHICULO_ID, document.getElementById('v_cat').value, document.getElementById('v_fec').value, document.getElementById('v_km').value, document.getElementById('v_prox_fec').value, document.getElementById('v_res').value, document.getElementById('v_costo').value];
-        }
+        if(hoja === 'Mantenimiento') valores = [idServ, VEHICULO_ID, document.getElementById('m_cat').value, document.getElementById('m_sub').value, document.getElementById('m_fec').value, document.getElementById('m_km').value, document.getElementById('m_prox_km').value, document.getElementById('m_prox_fec').value, document.getElementById('m_costo').value];
+        else if(hoja === 'Gastos_Corrientes') valores = [idServ, VEHICULO_ID, document.getElementById('g_cat').value, document.getElementById('g_sub').value, document.getElementById('g_fec').value, document.getElementById('g_costo').value];
+        else if(hoja === 'VTV_Documentacion') valores = [idServ, VEHICULO_ID, document.getElementById('v_cat').value, document.getElementById('v_fec').value, document.getElementById('v_km').value, document.getElementById('v_prox_fec').value, document.getElementById('v_res').value, document.getElementById('v_costo').value];
 
         try {
             await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'insert', hoja: hoja, valores: valores }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
             event.target.reset();
-            cargarTabla(hoja);
+            cargarYRenderizarTabla(hoja); // Recarga datos frescos
         } catch (e) { alert("❌ Error de conexión."); } 
         finally { ocultarCarga(); }
     }
@@ -335,11 +392,12 @@
         mostrarCarga("Eliminando...");
         try {
             await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', hoja: hoja, id: id }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
-            cargarTabla(hoja);
+            cargarYRenderizarTabla(hoja);
         } catch (e) { alert("❌ Error al eliminar."); } 
         finally { ocultarCarga(); }
     }
 
+    // Funciones del Dashboard
     function armarMiniLista(arrayDatos) {
         if(!arrayDatos || arrayDatos.length === 0) return '<p class="small text-muted">Sin registros</p>';
         return arrayDatos.map(item => `
@@ -350,70 +408,57 @@
         `).join('');
     }
 
-    // Cargar Dashboard (Tarjetas + Gráfico)
     async function cargarResumenDashboard() {
         const box = document.getElementById('dashboardCards');
         try {
             const [reqM, reqG, reqV] = await Promise.all([ fetch(`${GAS_URL}?hoja=Mantenimiento`), fetch(`${GAS_URL}?hoja=Gastos_Corrientes`), fetch(`${GAS_URL}?hoja=VTV_Documentacion`) ]);
-            const dataM = await reqM.json(); const dataG = await reqG.json(); const dataV = await reqV.json();
             
-            // Render Tarjetas
-            const ult3M = dataM.slice(-3).reverse();
-            const ult3G = dataG.slice(-3).reverse();
-            const ult3V = dataV.slice(-3).reverse();
+            // Descargar y ordenar los datos del más nuevo al más viejo
+            let dataM = await reqM.json(); dataM.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
+            let dataG = await reqG.json(); dataG.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
+            let dataV = await reqV.json(); dataV.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
+            
+            const ult3M = dataM.slice(0, 3);
+            const ult3G = dataG.slice(0, 3);
+            const ult3V = dataV.slice(0, 3);
 
             box.innerHTML = `
                 <div class="col-md-4 mb-3"><div class="card bg-white h-100 border-start border-primary border-4"><div class="card-body"><h6 class="text-primary fw-bold">🛠️ Mantenimientos</h6>${armarMiniLista(ult3M)}</div></div></div>
                 <div class="col-md-4 mb-3"><div class="card bg-white h-100 border-start border-success border-4"><div class="card-body"><h6 class="text-success fw-bold">💸 Gastos</h6>${armarMiniLista(ult3G)}</div></div></div>
                 <div class="col-md-4 mb-3"><div class="card bg-white h-100 border-start border-danger border-4"><div class="card-body"><h6 class="text-danger fw-bold">📄 VTV / Doc</h6>${armarMiniLista(ult3V)}</div></div></div>
             `;
-
-            // Procesar datos para el gráfico
             generarGraficoCostos(dataM, dataG, dataV);
-
         } catch (e) { box.innerHTML = '<div class="col-12 text-danger">Error cargando resumen.</div>'; console.error(e); }
     }
 
-    // LÓGICA DEL GRÁFICO (Chart.js)
+    // Gráfico de Chart.js
     function generarGraficoCostos(dataM, dataG, dataV) {
         const agrupar = {};
-
-        // Función para procesar y sumar costos
         const procesarData = (array, categoriaLlave, esCombustible = false) => {
             array.forEach(item => {
                 const mes = extraerMesAnio(item.Fecha);
                 const costo = parseFloat(item.Costo) || 0;
                 if(mes && costo > 0) {
                     if(!agrupar[mes]) agrupar[mes] = { manto: 0, gastos: 0, combus: 0, vtv: 0, fData: new Date(item.Fecha) };
-                    
-                    if(esCombustible && item.Categoría === 'Combustible') {
-                        agrupar[mes].combus += costo;
-                    } else if (esCombustible && item.Categoría !== 'Combustible') {
-                        agrupar[mes].gastos += costo; // Seguro, Patente, etc
-                    } else {
-                        agrupar[mes][categoriaLlave] += costo;
-                    }
+                    if(esCombustible && item.Categoría === 'Combustible') agrupar[mes].combus += costo;
+                    else if (esCombustible && item.Categoría !== 'Combustible') agrupar[mes].gastos += costo;
+                    else agrupar[mes][categoriaLlave] += costo;
                 }
             });
         };
 
         procesarData(dataM, 'manto');
-        procesarData(dataG, 'gastos', true); // Le pasamos true para que separe el Combustible
+        procesarData(dataG, 'gastos', true);
         procesarData(dataV, 'vtv');
 
-        // Ordenar cronológicamente
         const mesesOrdenados = Object.keys(agrupar).sort((a, b) => agrupar[a].fData - agrupar[b].fData);
-        
-        // Preparar las series de datos
         const datasetManto = mesesOrdenados.map(m => agrupar[m].manto);
         const datasetVTV = mesesOrdenados.map(m => agrupar[m].vtv);
         const datasetGastos = mesesOrdenados.map(m => agrupar[m].gastos);
         const datasetCombus = mesesOrdenados.map(m => agrupar[m].combus);
 
         const ctx = document.getElementById('costosChart').getContext('2d');
-        
-        // Destruir gráfico previo si existe (para evitar solapamientos al recargar)
-        if (miGrafico) { miGrafico.destroy(); }
+        if (miGrafico) miGrafico.destroy(); 
 
         miGrafico = new Chart(ctx, {
             type: 'line',
@@ -427,55 +472,133 @@
                 ]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { 
-                    tooltip: { callbacks: { label: function(context) { return context.dataset.label + ': $' + context.parsed.y.toLocaleString('es-AR'); } } }
-                },
-                scales: {
-                    x: { grid: { display: false } },
-                    y: { 
-                        stacked: true, // Esto hace que sea un gráfico de áreas APILADAS
-                        beginAtZero: true,
-                        ticks: { callback: function(value) { return '$' + value.toLocaleString('es-AR'); } }
-                    }
-                }
+                responsive: true, maintainAspectRatio: false,
+                plugins: { tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': $' + c.parsed.y.toLocaleString('es-AR'); } } } },
+                scales: { x: { grid: { display: false } }, y: { stacked: true, beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString('es-AR'); } } } }
             }
         });
     }
 
-    // Carga de tablas individuales
-    async function cargarTabla(hoja) {
+    // --- NUEVO: SISTEMA DE TABLAS, FILTROS Y PAGINACIÓN ---
+    
+    // 1. Descarga datos desde Google
+    async function cargarYRenderizarTabla(hoja) {
         const tbody = document.getElementById(`tabla_${hoja}`);
-        let colCount = hoja === 'Mantenimiento' ? 7 : (hoja === 'VTV_Documentacion' ? 6 : 5);
-        tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center"><div class="spinner-border spinner-border-sm"></div></td></tr>`;
+        let colCount = hoja === 'Mantenimiento' ? 8 : (hoja === 'VTV_Documentacion' ? 6 : 5);
+        tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center"><div class="spinner-border spinner-border-sm"></div> Descargando datos...</td></tr>`;
         
         try {
             const resp = await fetch(`${GAS_URL}?hoja=${hoja}`);
-            const datos = await resp.json();
-            tbody.innerHTML = "";
-            if(datos.length === 0) { tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center">Sin registros.</td></tr>`; return; }
+            let datos = await resp.json();
+            
+            // Ordenamos TODOS los datos del más nuevo al más viejo
+            datos.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
+            
+            // Guardamos en memoria
+            dataGlobal[hoja] = datos;
+            paginas[hoja] = 1; // Reseteamos a pagina 1
+            filtros[hoja] = ''; // Reseteamos filtro
 
-            datos.reverse().slice(0, 15).forEach(fila => {
-                const tr = document.createElement('tr');
-                const btnX = `<button class="btn-delete" onclick="borrarRegistro('${fila.ID_Servicio}', '${hoja}')" title="Eliminar">❌</button>`;
-                
-                if(hoja === 'Mantenimiento') {
-                    tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td>${fila.Categoría} (${fila.SubCategoria})</td><td>${fila.Km}</td><td><span class="badge bg-info text-dark">${fila.Prox_Rev_Km || '-'}</span></td><td><span class="badge bg-warning text-dark">${formatearFecha(fila.Prox_Rev_Fecha)}</span></td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td>${btnX}</td>`;
-                } else if(hoja === 'Gastos_Corrientes') {
-                    // Agregamos un emoji visual si es Combustible
-                    const icono = fila.Categoría === 'Combustible' ? '⛽ ' : '';
-                    tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td>${icono}${fila.Categoría}</td><td>${fila.SubCategoria}</td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td>${btnX}</td>`;
-                } else if(hoja === 'VTV_Documentacion') {
-                    const colorRes = fila.Resultado === 'Aprobado' ? 'text-success' : (fila.Resultado === 'Rechazado' ? 'text-danger' : 'text-warning');
-                    tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td>${fila.Categoría}</td><td class="fw-bold ${colorRes}">${fila.Resultado}</td><td class="text-danger fw-bold">${formatearFecha(fila.Prox_Rev_Fecha)}</td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td>${btnX}</td>`;
-                }
-                tbody.appendChild(tr);
-            });
-        } catch (e) { tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-danger text-center">Error de carga.</td></tr>`; }
+            actualizarDesplegableFiltros(hoja);
+            renderizarTabla(hoja);
+
+        } catch (e) { tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-danger text-center">Error de conexión.</td></tr>`; }
     }
 
-    // Alertas 
+    // 2. Llena las opciones del `<select>` de filtros
+    function actualizarDesplegableFiltros(hoja) {
+        const select = document.getElementById(`filtro_${hoja}`);
+        // Obtenemos categorías únicas
+        const categoriasUnicas = [...new Set(dataGlobal[hoja].map(item => item.Categoría))].filter(Boolean).sort();
+        
+        select.innerHTML = '<option value="">Todas las categorías</option>';
+        categoriasUnicas.forEach(cat => {
+            select.innerHTML += `<option value="${cat}">${cat}</option>`;
+        });
+        select.value = filtros[hoja];
+    }
+
+    // 3. Cuando el usuario cambia el filtro
+    function aplicarFiltro(hoja) {
+        filtros[hoja] = document.getElementById(`filtro_${hoja}`).value;
+        paginas[hoja] = 1; // Volver a la pag 1 al filtrar
+        renderizarTabla(hoja);
+    }
+
+    // 4. Cuando el usuario hace clic en Anterior / Siguiente
+    function cambiarPagina(hoja, direccion) {
+        const datosFiltrados = dataGlobal[hoja].filter(item => filtros[hoja] === '' || item.Categoría === filtros[hoja]);
+        const totalPaginas = Math.ceil(datosFiltrados.length / ITEMS_POR_PAGINA) || 1;
+        
+        let nuevaPagina = paginas[hoja] + direccion;
+        if(nuevaPagina >= 1 && nuevaPagina <= totalPaginas) {
+            paginas[hoja] = nuevaPagina;
+            renderizarTabla(hoja);
+        }
+    }
+
+    // 5. Dibuja las filas de la tabla
+    function renderizarTabla(hoja) {
+        const tbody = document.getElementById(`tabla_${hoja}`);
+        let colCount = hoja === 'Mantenimiento' ? 8 : (hoja === 'VTV_Documentacion' ? 6 : 5);
+        tbody.innerHTML = '';
+
+        // Aplicamos el Filtro
+        const datosFiltrados = dataGlobal[hoja].filter(item => filtros[hoja] === '' || item.Categoría === filtros[hoja]);
+        
+        // Matemáticas de Paginación
+        const totalItems = datosFiltrados.length;
+        const totalPaginas = Math.ceil(totalItems / ITEMS_POR_PAGINA) || 1;
+        const start = (paginas[hoja] - 1) * ITEMS_POR_PAGINA;
+        const end = start + ITEMS_POR_PAGINA;
+        
+        // Actualizamos texto de Paginación
+        document.getElementById(`pageInfo_${hoja}`).innerText = `Pág ${paginas[hoja]} / ${totalPaginas}`;
+
+        // Extraemos solo los 15 registros de la página actual
+        const datosPagina = datosFiltrados.slice(start, end);
+
+        if(datosPagina.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center text-muted py-3">No hay registros que mostrar.</td></tr>`;
+            return;
+        }
+
+        // Dibujamos el HTML
+        datosPagina.forEach(fila => {
+            const tr = document.createElement('tr');
+            const btnX = `<button class="btn-delete" onclick="borrarRegistro('${fila.ID_Servicio}', '${hoja}')" title="Eliminar">❌</button>`;
+            
+            if(hoja === 'Mantenimiento') {
+                // Columnas de Categoría y Detalle separadas
+                tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td>
+                                <td class="fw-bold">${fila.Categoría}</td>
+                                <td>${fila.SubCategoria}</td>
+                                <td>${fila.Km}</td>
+                                <td><span class="badge bg-info text-dark">${fila.Prox_Rev_Km || '-'}</span></td>
+                                <td><span class="badge bg-warning text-dark">${formatearFecha(fila.Prox_Rev_Fecha)}</span></td>
+                                <td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td>
+                                <td>${btnX}</td>`;
+            } else if(hoja === 'Gastos_Corrientes') {
+                const icono = fila.Categoría === 'Combustible' ? '⛽ ' : '';
+                tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td>
+                                <td>${icono}${fila.Categoría}</td>
+                                <td>${fila.SubCategoria}</td>
+                                <td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td>
+                                <td>${btnX}</td>`;
+            } else if(hoja === 'VTV_Documentacion') {
+                const colorRes = fila.Resultado === 'Aprobado' ? 'text-success' : (fila.Resultado === 'Rechazado' ? 'text-danger' : 'text-warning');
+                tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td>
+                                <td>${fila.Categoría}</td>
+                                <td class="fw-bold ${colorRes}">${fila.Resultado}</td>
+                                <td class="text-danger fw-bold">${formatearFecha(fila.Prox_Rev_Fecha)}</td>
+                                <td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td>
+                                <td>${btnX}</td>`;
+            }
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Alertas Inteligentes
     async function analizarAlertas(forzarActualizacion = true) {
         const kmInput = document.getElementById('kmInput').value;
         if(forzarActualizacion) {
