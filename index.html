@@ -1,33 +1,99 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control Vehicular - AC 064 PP</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
-        body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .sidebar { height: 100vh; background: #1a1d20; color: white; padding: 20px; position: fixed; width: 260px; z-index: 1000; }
-        .sidebar h4 { color: #ffca28; font-weight: bold; margin-bottom: 25px; text-align: center; }
-        .nav-link { color: #adb5bd; margin-bottom: 10px; border-radius: 5px; transition: 0.3s; }
-        .nav-link:hover { background: #343a40; color: white; }
-        .nav-link.active { background: #0d6efd; color: white; }
+        /* Tipografía y Fondos Base */
+        body { 
+            background-color: #121212; 
+            font-family: 'Inter', sans-serif; 
+            font-size: 0.9rem; /* Fuente sutilmente más chica */
+            color: #e0e0e0;
+        }
+
+        /* Menú Lateral */
+        .sidebar { 
+            height: 100vh; 
+            background: #181818; 
+            border-right: 1px solid #2d2d2d; 
+            padding: 20px; 
+            position: fixed; 
+            width: 280px; /* Un poco más ancho para los datos */
+            z-index: 1000; 
+        }
+        .sidebar h4 { color: #0dcaf0; font-weight: 700; margin-bottom: 15px; text-align: center; font-size: 1.2rem; }
+        
+        /* Ficha del Vehículo */
+        .vehicle-info { 
+            background-color: #222; 
+            border: 1px solid #333; 
+            border-radius: 8px; 
+            padding: 12px; 
+            font-size: 0.8rem; 
+            color: #b0b0b0; 
+            margin-bottom: 25px;
+        }
+        .vehicle-info strong { color: #e0e0e0; font-weight: 600; }
+
+        /* Links de Navegación */
+        .nav-link { color: #a0a0a0; margin-bottom: 8px; border-radius: 6px; transition: 0.3s; padding: 10px 15px; font-weight: 500; }
+        .nav-link:hover { background: #2d2d2d; color: #fff; }
+        .nav-link.active { background: #0d6efd; color: white; font-weight: 600; }
+        
+        /* Contenedor Principal */
         .main-content { margin-left: 280px; padding: 30px; }
-        .section { display: none; animation: fadeIn 0.5s; }
+        .section { display: none; animation: fadeIn 0.4s ease-in-out; }
         .section.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .btn-success { background-color: #28a745; border: none; font-weight: 600; }
-        .btn-delete { color: #dc3545; background: none; border: none; font-weight: bold; cursor: pointer; padding: 0 5px; }
-        .btn-delete:hover { color: #a71d2a; transform: scale(1.2); }
-        .small-list { font-size: 0.85rem; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; }
-        .small-list:last-child { border-bottom: none; }
-        #loadingOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 2000; text-align: center; padding-top: 20%; }
-        .chart-container { position: relative; height: 300px; width: 100%; }
-        .table-controls { background-color: #fdfdfd; border-bottom: 1px solid #eaeaea; border-top-left-radius: 12px; border-top-right-radius: 12px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Tarjetas Estilo "App" */
+        .card { 
+            background-color: #1e1e1e; 
+            border: 1px solid #2d2d2d; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2); 
+        }
+        .card-header { background-color: transparent; border-bottom: 1px solid #2d2d2d; font-weight: 600; }
+        
+        /* Tablas y Controles */
+        .table-controls { background-color: #1e1e1e; border-bottom: 1px solid #2d2d2d; border-top-left-radius: 12px; border-top-right-radius: 12px; }
+        .table { margin-bottom: 0; font-size: 0.85rem; }
+        .table-light { background-color: #252525; color: #fff; }
+        .table-light th { border-bottom: 2px solid #333; background-color: #252525; color: #aaa; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;}
+        tbody tr { border-bottom: 1px solid #2d2d2d; }
+        
+        /* Formularios */
+        .form-control, .form-select { background-color: #252525; border-color: #333; color: #fff; font-size: 0.9rem; }
+        .form-control:focus, .form-select:focus { background-color: #2a2a2a; border-color: #0d6efd; box-shadow: none; color: #fff; }
+        .form-label { font-size: 0.85rem; color: #aaa; }
+        
+        /* Botones y Badges */
+        .btn-success { background-color: #198754; border: none; font-weight: 600; letter-spacing: 0.5px; }
+        .btn-delete { color: #dc3545; background: none; border: none; font-weight: bold; cursor: pointer; padding: 0 5px; opacity: 0.8; transition: 0.2s; }
+        .btn-delete:hover { opacity: 1; transform: scale(1.2); }
+        .badge { font-weight: 500; letter-spacing: 0.5px; }
+        
+        /* Varios */
+        .small-list { font-size: 0.8rem; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 8px; }
+        .small-list:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0;}
+        .chart-container { position: relative; height: 320px; width: 100%; }
+        
+        #loadingOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(18,18,18,0.85); z-index: 2000; text-align: center; padding-top: 20vh; backdrop-filter: blur(4px); }
+        
+        /* Responsivo Celular */
         @media (max-width: 768px) {
-            .sidebar { height: auto; width: 100%; position: relative; padding: 10px; }
+            .sidebar { height: auto; width: 100%; position: relative; padding: 15px; border-right: none; border-bottom: 1px solid #2d2d2d; }
             .main-content { margin-left: 0; padding: 15px; }
         }
     </style>
@@ -35,13 +101,21 @@
 <body>
 
 <div id="loadingOverlay">
-    <div class="spinner-border text-primary" role="status"></div>
-    <p class="mt-2 fw-bold" id="loadingText">Procesando con Google Sheets...</p>
+    <div class="spinner-border text-info" role="status"></div>
+    <p class="mt-3 fw-bold text-light" id="loadingText">Procesando con Google Sheets...</p>
 </div>
 
 <div class="sidebar">
-    <h4>🚗 Mi Fiat Argo</h4>
-    <p class="text-center small mb-4">Dominio: <strong>AC 064 PP</strong></p>
+    <h4>🚗 Garage Virtual</h4>
+    
+    <div class="vehicle-info lh-lg">
+        <div class="mb-1"><strong>Marca:</strong> Fiat</div>
+        <div class="mb-1"><strong>Modelo:</strong> Argo</div>
+        <div class="mb-1 lh-sm" style="margin-top: -4px;"><strong>Versión:</strong> Drive 1.3 Pack Connect MT</div>
+        <div class="mb-1"><strong>Año:</strong> 2017</div>
+        <div class="mb-0 text-info fw-bold" style="font-size: 0.95rem;"><strong>Dominio:</strong> AC 064 PP</div>
+    </div>
+
     <nav class="nav flex-column" id="mainNav">
         <a class="nav-link active" href="#" onclick="switchSection('dashboard')">🏠 Dashboard</a>
         <a class="nav-link" href="#" onclick="switchSection('mantenimiento')">🛠️ Mantenimiento</a>
@@ -53,42 +127,43 @@
 <div class="main-content">
     
     <div id="dashboard" class="section active">
-        <h2 class="mb-4">Estado General</h2>
+        <h3 class="mb-4 fw-bold">Estado General</h3>
         
-        <div class="card mb-4 border-0 shadow-sm">
+        <div class="card mb-4">
             <div class="card-body">
-                <h5 class="card-title text-secondary fw-bold mb-3">📈 Evolución de Costos Mensuales</h5>
+                <h6 class="card-title text-info fw-bold mb-3">📈 Evolución de Costos Mensuales</h6>
                 <div class="chart-container">
                     <canvas id="costosChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <h5 class="mb-3 text-secondary">Últimos 3 Trabajos Realizados</h5>
+        <h6 class="mb-3 text-secondary fw-bold">Últimos 3 Trabajos Realizados</h6>
         <div class="row" id="dashboardCards">
-            <div class="col-12 text-center text-muted small"><div class="spinner-border spinner-border-sm"></div> Cargando resumen...</div>
+            <div class="col-12 text-center text-muted small"><div class="spinner-border spinner-border-sm text-info"></div> Cargando resumen...</div>
         </div>
 
-        <hr class="my-4">
+        <hr class="my-4 border-secondary">
 
-        <div class="card mb-4 border-primary shadow-sm">
+        <div class="card mb-4 border-info">
             <div class="card-body">
-                <h5 class="card-title text-primary">Control de Alertas (Km y Fechas)</h5>
-                <p class="text-muted small mb-2">Último kilometraje ingresado: <strong id="ultimoKmGuardado">-</strong> km</p>
+                <h6 class="card-title text-info fw-bold">Control de Alertas (Km y Fechas)</h6>
+                <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 10px;">Último kilometraje ingresado: <strong class="text-light" id="ultimoKmGuardado">-</strong> km</p>
                 <div class="input-group mb-3">
                     <input type="number" id="kmInput" class="form-control form-control-lg" placeholder="Actualizar km...">
-                    <button class="btn btn-primary fw-bold" onclick="analizarAlertas()">Chequear Vencimientos</button>
+                    <button class="btn btn-info fw-bold text-dark" onclick="analizarAlertas()">Chequear Estado</button>
                 </div>
             </div>
         </div>
         <div id="alertasBox">
-            <div class="alert alert-secondary text-center">Analizando el estado...</div>
+            <div class="alert alert-dark border-secondary text-center">Analizando el estado...</div>
         </div>
     </div>
 
     <div id="mantenimiento" class="section">
-        <h2 class="mb-4">🛠️ Mantenimiento</h2>
-        <div class="card mb-4 shadow-sm">
+        <h3 class="mb-4 fw-bold">🛠️ Mantenimiento</h3>
+        
+        <div class="card mb-4">
             <div class="card-body">
                 <form onsubmit="procesarEnvio(event, 'Mantenimiento')">
                     <div class="row">
@@ -109,7 +184,7 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label fw-bold text-success">Costo ($)</label>
-                            <input type="number" id="m_costo" class="form-control border-success" placeholder="Ej: 85000">
+                            <input type="number" id="m_costo" class="form-control" placeholder="Ej: 85000">
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-bold">Fecha</label>
@@ -120,14 +195,14 @@
                             <input type="number" id="m_km" class="form-control" required>
                         </div>
                     </div>
-                    <div class="row p-3 mb-3 rounded" style="background-color: #e9ecef;">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold text-primary">Próxima Revisión (Km)</label>
-                            <input type="number" id="m_prox_km" class="form-control border-primary">
+                    <div class="row p-3 mb-3 rounded" style="background-color: #1a1a1a; border: 1px dashed #444;">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <label class="form-label fw-bold text-info">Próxima Revisión (Km)</label>
+                            <input type="number" id="m_prox_km" class="form-control">
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold text-primary">Próxima Revisión (Fecha)</label>
-                            <input type="date" id="m_prox_fec" class="form-control border-primary">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-info">Próxima Revisión (Fecha)</label>
+                            <input type="date" id="m_prox_fec" class="form-control">
                         </div>
                     </div>
                     <button type="submit" class="btn btn-success w-100">Guardar Mantenimiento</button>
@@ -135,24 +210,24 @@
             </div>
         </div>
         
-        <div class="card shadow-sm">
+        <div class="card">
             <div class="d-flex flex-wrap justify-content-between align-items-center p-3 table-controls">
                 <div class="d-flex align-items-center mb-2 mb-md-0">
-                    <label class="me-2 fw-bold small text-muted">Filtrar:</label>
+                    <label class="me-2 fw-bold text-muted" style="font-size: 0.8rem;">Filtrar:</label>
                     <select id="filtro_Mantenimiento" class="form-select form-select-sm w-auto" onchange="aplicarFiltro('Mantenimiento')">
                         <option value="">Todas las categorías</option>
                     </select>
                 </div>
                 <div class="d-flex align-items-center">
                     <button class="btn btn-sm btn-outline-secondary" onclick="cambiarPagina('Mantenimiento', -1)">◀</button>
-                    <span id="pageInfo_Mantenimiento" class="mx-3 small fw-bold text-muted">Pág 1 / 1</span>
+                    <span id="pageInfo_Mantenimiento" class="mx-3 fw-bold text-muted" style="font-size: 0.8rem;">Pág 1 / 1</span>
                     <button class="btn btn-sm btn-outline-secondary" onclick="cambiarPagina('Mantenimiento', 1)">▶</button>
                 </div>
             </div>
             
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
+                    <table class="table table-dark table-hover mb-0">
                         <thead class="table-light">
                             <tr><th>Fecha</th><th>Categoría</th><th>Detalle</th><th>Km</th><th>Próx. Km</th><th>Próx. Fecha</th><th>Costo</th><th></th></tr>
                         </thead>
@@ -164,8 +239,9 @@
     </div>
 
     <div id="gastos" class="section">
-        <h2 class="mb-4">💸 Gastos Corrientes</h2>
-        <div class="card mb-4 shadow-sm">
+        <h3 class="mb-4 fw-bold">💸 Gastos Corrientes</h3>
+        
+        <div class="card mb-4">
             <div class="card-body">
                 <form onsubmit="procesarEnvio(event, 'Gastos_Corrientes')">
                     <div class="row">
@@ -184,7 +260,7 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label fw-bold text-success">Importe Pagado ($)</label>
-                            <input type="number" id="g_costo" class="form-control border-success" required>
+                            <input type="number" id="g_costo" class="form-control" required>
                         </div>
                         <div class="col-md-12 mb-3">
                             <label class="form-label fw-bold">Fecha de Pago</label>
@@ -196,24 +272,24 @@
             </div>
         </div>
         
-        <div class="card shadow-sm">
+        <div class="card">
             <div class="d-flex flex-wrap justify-content-between align-items-center p-3 table-controls">
                 <div class="d-flex align-items-center mb-2 mb-md-0">
-                    <label class="me-2 fw-bold small text-muted">Filtrar:</label>
+                    <label class="me-2 fw-bold text-muted" style="font-size: 0.8rem;">Filtrar:</label>
                     <select id="filtro_Gastos_Corrientes" class="form-select form-select-sm w-auto" onchange="aplicarFiltro('Gastos_Corrientes')">
                         <option value="">Todas las categorías</option>
                     </select>
                 </div>
                 <div class="d-flex align-items-center">
                     <button class="btn btn-sm btn-outline-secondary" onclick="cambiarPagina('Gastos_Corrientes', -1)">◀</button>
-                    <span id="pageInfo_Gastos_Corrientes" class="mx-3 small fw-bold text-muted">Pág 1 / 1</span>
+                    <span id="pageInfo_Gastos_Corrientes" class="mx-3 fw-bold text-muted" style="font-size: 0.8rem;">Pág 1 / 1</span>
                     <button class="btn btn-sm btn-outline-secondary" onclick="cambiarPagina('Gastos_Corrientes', 1)">▶</button>
                 </div>
             </div>
             
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
+                    <table class="table table-dark table-hover mb-0">
                         <thead class="table-light">
                             <tr><th>Fecha</th><th>Categoría</th><th>Detalle</th><th>Importe</th><th></th></tr>
                         </thead>
@@ -225,8 +301,9 @@
     </div>
 
     <div id="vtv" class="section">
-        <h2 class="mb-4">📄 VTV y Documentación</h2>
-        <div class="card mb-4 shadow-sm">
+        <h3 class="mb-4 fw-bold">📄 VTV y Documentación</h3>
+        
+        <div class="card mb-4">
             <div class="card-body">
                 <form onsubmit="procesarEnvio(event, 'VTV_Documentacion')">
                     <div class="row">
@@ -244,7 +321,7 @@
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold text-success">Costo Trámite ($)</label>
-                            <input type="number" id="v_costo" class="form-control border-success">
+                            <input type="number" id="v_costo" class="form-control">
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Fecha Realización</label>
@@ -264,24 +341,24 @@
             </div>
         </div>
         
-        <div class="card shadow-sm">
+        <div class="card">
             <div class="d-flex flex-wrap justify-content-between align-items-center p-3 table-controls">
                 <div class="d-flex align-items-center mb-2 mb-md-0">
-                    <label class="me-2 fw-bold small text-muted">Filtrar:</label>
+                    <label class="me-2 fw-bold text-muted" style="font-size: 0.8rem;">Filtrar:</label>
                     <select id="filtro_VTV_Documentacion" class="form-select form-select-sm w-auto" onchange="aplicarFiltro('VTV_Documentacion')">
                         <option value="">Todas las categorías</option>
                     </select>
                 </div>
                 <div class="d-flex align-items-center">
                     <button class="btn btn-sm btn-outline-secondary" onclick="cambiarPagina('VTV_Documentacion', -1)">◀</button>
-                    <span id="pageInfo_VTV_Documentacion" class="mx-3 small fw-bold text-muted">Pág 1 / 1</span>
+                    <span id="pageInfo_VTV_Documentacion" class="mx-3 fw-bold text-muted" style="font-size: 0.8rem;">Pág 1 / 1</span>
                     <button class="btn btn-sm btn-outline-secondary" onclick="cambiarPagina('VTV_Documentacion', 1)">▶</button>
                 </div>
             </div>
 
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
+                    <table class="table table-dark table-hover mb-0">
                         <thead class="table-light">
                             <tr><th>Fecha</th><th>Trámite</th><th>Resultado</th><th>Vencimiento</th><th>Costo</th><th></th></tr>
                         </thead>
@@ -300,8 +377,6 @@
     const ITEMS_POR_PAGINA = 15;
     
     let miGrafico = null;
-    
-    // Almacenamiento en memoria para orden, filtros y paginación
     let dataGlobal = { 'Mantenimiento': [], 'Gastos_Corrientes': [], 'VTV_Documentacion': [] };
     let paginas = { 'Mantenimiento': 1, 'Gastos_Corrientes': 1, 'VTV_Documentacion': 1 };
     let filtros = { 'Mantenimiento': '', 'Gastos_Corrientes': '', 'VTV_Documentacion': '' };
@@ -329,7 +404,6 @@
         return fechaStr;
     }
 
-    // Convertidor seguro de fechas para ordenamiento cronológico
     function getSafeDate(fechaStr) {
         if (!fechaStr) return 0;
         if (fechaStr.includes('T')) return new Date(fechaStr).getTime();
@@ -370,7 +444,7 @@
     // Backend: Insertar
     async function procesarEnvio(event, hoja) {
         event.preventDefault();
-        mostrarCarga("Guardando en Google Sheets...");
+        mostrarCarga("Guardando en la base de datos...");
         const idServ = "S-" + Date.now();
         let valores = [];
 
@@ -381,15 +455,15 @@
         try {
             await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'insert', hoja: hoja, valores: valores }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
             event.target.reset();
-            cargarYRenderizarTabla(hoja); // Recarga datos frescos
+            cargarYRenderizarTabla(hoja); 
         } catch (e) { alert("❌ Error de conexión."); } 
         finally { ocultarCarga(); }
     }
 
     // Backend: Borrar
     async function borrarRegistro(id, hoja) {
-        if(!confirm("⚠️ ¿Seguro que querés eliminar este registro?")) return;
-        mostrarCarga("Eliminando...");
+        if(!confirm("⚠️ ¿Confirmás que querés eliminar este registro para siempre?")) return;
+        mostrarCarga("Eliminando de la base de datos...");
         try {
             await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', hoja: hoja, id: id }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
             cargarYRenderizarTabla(hoja);
@@ -397,13 +471,13 @@
         finally { ocultarCarga(); }
     }
 
-    // Funciones del Dashboard
+    // Dashoard Resumen
     function armarMiniLista(arrayDatos) {
-        if(!arrayDatos || arrayDatos.length === 0) return '<p class="small text-muted">Sin registros</p>';
+        if(!arrayDatos || arrayDatos.length === 0) return '<p class="text-muted small">Aún no hay registros</p>';
         return arrayDatos.map(item => `
             <div class="small-list">
-                <strong>${item.Categoría}</strong> ${item.SubCategoria ? `(${item.SubCategoria})` : ''} <br>
-                <span class="text-muted">🗓️ ${formatearFecha(item.Fecha)} ${item.Costo ? `| 💵 ${formatPlata(item.Costo)}` : ''}</span>
+                <strong class="text-light">${item.Categoría}</strong> ${item.SubCategoria ? `<span class="text-secondary">(${item.SubCategoria})</span>` : ''} <br>
+                <span class="text-muted">🗓️ ${formatearFecha(item.Fecha)} ${item.Costo ? `<span class="ms-2">💵 <strong class="text-success">${formatPlata(item.Costo)}</strong></span>` : ''}</span>
             </div>
         `).join('');
     }
@@ -413,7 +487,6 @@
         try {
             const [reqM, reqG, reqV] = await Promise.all([ fetch(`${GAS_URL}?hoja=Mantenimiento`), fetch(`${GAS_URL}?hoja=Gastos_Corrientes`), fetch(`${GAS_URL}?hoja=VTV_Documentacion`) ]);
             
-            // Descargar y ordenar los datos del más nuevo al más viejo
             let dataM = await reqM.json(); dataM.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
             let dataG = await reqG.json(); dataG.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
             let dataV = await reqV.json(); dataV.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
@@ -423,15 +496,15 @@
             const ult3V = dataV.slice(0, 3);
 
             box.innerHTML = `
-                <div class="col-md-4 mb-3"><div class="card bg-white h-100 border-start border-primary border-4"><div class="card-body"><h6 class="text-primary fw-bold">🛠️ Mantenimientos</h6>${armarMiniLista(ult3M)}</div></div></div>
-                <div class="col-md-4 mb-3"><div class="card bg-white h-100 border-start border-success border-4"><div class="card-body"><h6 class="text-success fw-bold">💸 Gastos</h6>${armarMiniLista(ult3G)}</div></div></div>
-                <div class="col-md-4 mb-3"><div class="card bg-white h-100 border-start border-danger border-4"><div class="card-body"><h6 class="text-danger fw-bold">📄 VTV / Doc</h6>${armarMiniLista(ult3V)}</div></div></div>
+                <div class="col-md-4 mb-3"><div class="card h-100 border-0 border-start border-primary border-4"><div class="card-body"><h6 class="text-primary fw-bold mb-3">🛠️ Mantenimientos</h6>${armarMiniLista(ult3M)}</div></div></div>
+                <div class="col-md-4 mb-3"><div class="card h-100 border-0 border-start border-success border-4"><div class="card-body"><h6 class="text-success fw-bold mb-3">💸 Gastos</h6>${armarMiniLista(ult3G)}</div></div></div>
+                <div class="col-md-4 mb-3"><div class="card h-100 border-0 border-start border-danger border-4"><div class="card-body"><h6 class="text-danger fw-bold mb-3">📄 VTV / Doc</h6>${armarMiniLista(ult3V)}</div></div></div>
             `;
             generarGraficoCostos(dataM, dataG, dataV);
-        } catch (e) { box.innerHTML = '<div class="col-12 text-danger">Error cargando resumen.</div>'; console.error(e); }
+        } catch (e) { box.innerHTML = '<div class="col-12 text-danger">Error cargando resumen.</div>'; }
     }
 
-    // Gráfico de Chart.js
+    // Gráfico Dark Mode
     function generarGraficoCostos(dataM, dataG, dataV) {
         const agrupar = {};
         const procesarData = (array, categoriaLlave, esCombustible = false) => {
@@ -465,67 +538,67 @@
             data: {
                 labels: mesesOrdenados,
                 datasets: [
-                    { label: 'VTV y Doc', data: datasetVTV, backgroundColor: 'rgba(220, 53, 69, 0.5)', borderColor: '#dc3545', fill: true, tension: 0.3 },
-                    { label: 'Gastos Corrientes', data: datasetGastos, backgroundColor: 'rgba(25, 135, 84, 0.5)', borderColor: '#198754', fill: true, tension: 0.3 },
-                    { label: 'Combustible', data: datasetCombus, backgroundColor: 'rgba(255, 193, 7, 0.5)', borderColor: '#ffc107', fill: true, tension: 0.3 },
-                    { label: 'Mantenimiento', data: datasetManto, backgroundColor: 'rgba(13, 110, 253, 0.5)', borderColor: '#0d6efd', fill: true, tension: 0.3 }
+                    { label: 'VTV y Doc', data: datasetVTV, backgroundColor: 'rgba(220, 53, 69, 0.4)', borderColor: '#dc3545', fill: true, tension: 0.3, borderWidth: 2 },
+                    { label: 'Gastos Corrientes', data: datasetGastos, backgroundColor: 'rgba(25, 135, 84, 0.4)', borderColor: '#198754', fill: true, tension: 0.3, borderWidth: 2 },
+                    { label: 'Combustible', data: datasetCombus, backgroundColor: 'rgba(255, 193, 7, 0.4)', borderColor: '#ffc107', fill: true, tension: 0.3, borderWidth: 2 },
+                    { label: 'Mantenimiento', data: datasetManto, backgroundColor: 'rgba(13, 110, 253, 0.4)', borderColor: '#0d6efd', fill: true, tension: 0.3, borderWidth: 2 }
                 ]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': $' + c.parsed.y.toLocaleString('es-AR'); } } } },
-                scales: { x: { grid: { display: false } }, y: { stacked: true, beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString('es-AR'); } } } }
+                color: '#aaa', // Color del texto del gráfico
+                plugins: { 
+                    tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': $' + c.parsed.y.toLocaleString('es-AR'); } } },
+                    legend: { labels: { color: '#e0e0e0', font: { family: 'Inter' } } }
+                },
+                scales: { 
+                    x: { grid: { display: false }, ticks: { color: '#aaa', font: { family: 'Inter' } } }, 
+                    y: { 
+                        stacked: true, beginAtZero: true, 
+                        grid: { color: '#2d2d2d' }, // Líneas de fondo oscuras
+                        ticks: { color: '#aaa', font: { family: 'Inter' }, callback: function(v) { return '$' + v.toLocaleString('es-AR'); } } 
+                    } 
+                }
             }
         });
     }
 
-    // --- NUEVO: SISTEMA DE TABLAS, FILTROS Y PAGINACIÓN ---
-    
-    // 1. Descarga datos desde Google
+    // Funciones de Tabla (Paginación y Filtros)
     async function cargarYRenderizarTabla(hoja) {
         const tbody = document.getElementById(`tabla_${hoja}`);
         let colCount = hoja === 'Mantenimiento' ? 8 : (hoja === 'VTV_Documentacion' ? 6 : 5);
-        tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center"><div class="spinner-border spinner-border-sm"></div> Descargando datos...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center py-4"><div class="spinner-border spinner-border-sm text-info"></div> Cargando información...</td></tr>`;
         
         try {
             const resp = await fetch(`${GAS_URL}?hoja=${hoja}`);
             let datos = await resp.json();
             
-            // Ordenamos TODOS los datos del más nuevo al más viejo
             datos.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
             
-            // Guardamos en memoria
             dataGlobal[hoja] = datos;
-            paginas[hoja] = 1; // Reseteamos a pagina 1
-            filtros[hoja] = ''; // Reseteamos filtro
+            paginas[hoja] = 1; 
+            filtros[hoja] = ''; 
 
             actualizarDesplegableFiltros(hoja);
             renderizarTabla(hoja);
-
         } catch (e) { tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-danger text-center">Error de conexión.</td></tr>`; }
     }
 
-    // 2. Llena las opciones del `<select>` de filtros
     function actualizarDesplegableFiltros(hoja) {
         const select = document.getElementById(`filtro_${hoja}`);
-        // Obtenemos categorías únicas
         const categoriasUnicas = [...new Set(dataGlobal[hoja].map(item => item.Categoría))].filter(Boolean).sort();
         
         select.innerHTML = '<option value="">Todas las categorías</option>';
-        categoriasUnicas.forEach(cat => {
-            select.innerHTML += `<option value="${cat}">${cat}</option>`;
-        });
+        categoriasUnicas.forEach(cat => { select.innerHTML += `<option value="${cat}">${cat}</option>`; });
         select.value = filtros[hoja];
     }
 
-    // 3. Cuando el usuario cambia el filtro
     function aplicarFiltro(hoja) {
         filtros[hoja] = document.getElementById(`filtro_${hoja}`).value;
-        paginas[hoja] = 1; // Volver a la pag 1 al filtrar
+        paginas[hoja] = 1; 
         renderizarTabla(hoja);
     }
 
-    // 4. Cuando el usuario hace clic en Anterior / Siguiente
     function cambiarPagina(hoja, direccion) {
         const datosFiltrados = dataGlobal[hoja].filter(item => filtros[hoja] === '' || item.Categoría === filtros[hoja]);
         const totalPaginas = Math.ceil(datosFiltrados.length / ITEMS_POR_PAGINA) || 1;
@@ -537,68 +610,58 @@
         }
     }
 
-    // 5. Dibuja las filas de la tabla
     function renderizarTabla(hoja) {
         const tbody = document.getElementById(`tabla_${hoja}`);
         let colCount = hoja === 'Mantenimiento' ? 8 : (hoja === 'VTV_Documentacion' ? 6 : 5);
         tbody.innerHTML = '';
 
-        // Aplicamos el Filtro
         const datosFiltrados = dataGlobal[hoja].filter(item => filtros[hoja] === '' || item.Categoría === filtros[hoja]);
-        
-        // Matemáticas de Paginación
-        const totalItems = datosFiltrados.length;
-        const totalPaginas = Math.ceil(totalItems / ITEMS_POR_PAGINA) || 1;
+        const totalPaginas = Math.ceil(datosFiltrados.length / ITEMS_POR_PAGINA) || 1;
         const start = (paginas[hoja] - 1) * ITEMS_POR_PAGINA;
         const end = start + ITEMS_POR_PAGINA;
         
-        // Actualizamos texto de Paginación
         document.getElementById(`pageInfo_${hoja}`).innerText = `Pág ${paginas[hoja]} / ${totalPaginas}`;
-
-        // Extraemos solo los 15 registros de la página actual
         const datosPagina = datosFiltrados.slice(start, end);
 
         if(datosPagina.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center text-muted py-3">No hay registros que mostrar.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center text-muted py-4">No hay registros que mostrar.</td></tr>`;
             return;
         }
 
-        // Dibujamos el HTML
         datosPagina.forEach(fila => {
             const tr = document.createElement('tr');
             const btnX = `<button class="btn-delete" onclick="borrarRegistro('${fila.ID_Servicio}', '${hoja}')" title="Eliminar">❌</button>`;
             
             if(hoja === 'Mantenimiento') {
-                // Columnas de Categoría y Detalle separadas
                 tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td>
-                                <td class="fw-bold">${fila.Categoría}</td>
-                                <td>${fila.SubCategoria}</td>
+                                <td class="fw-bold text-light">${fila.Categoría}</td>
+                                <td class="text-muted">${fila.SubCategoria}</td>
                                 <td>${fila.Km}</td>
                                 <td><span class="badge bg-info text-dark">${fila.Prox_Rev_Km || '-'}</span></td>
                                 <td><span class="badge bg-warning text-dark">${formatearFecha(fila.Prox_Rev_Fecha)}</span></td>
                                 <td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td>
-                                <td>${btnX}</td>`;
+                                <td class="text-end">${btnX}</td>`;
             } else if(hoja === 'Gastos_Corrientes') {
                 const icono = fila.Categoría === 'Combustible' ? '⛽ ' : '';
                 tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td>
-                                <td>${icono}${fila.Categoría}</td>
-                                <td>${fila.SubCategoria}</td>
+                                <td class="text-light">${icono}${fila.Categoría}</td>
+                                <td class="text-muted">${fila.SubCategoria}</td>
                                 <td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td>
-                                <td>${btnX}</td>`;
+                                <td class="text-end">${btnX}</td>`;
             } else if(hoja === 'VTV_Documentacion') {
                 const colorRes = fila.Resultado === 'Aprobado' ? 'text-success' : (fila.Resultado === 'Rechazado' ? 'text-danger' : 'text-warning');
                 tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td>
-                                <td>${fila.Categoría}</td>
+                                <td class="text-light">${fila.Categoría}</td>
                                 <td class="fw-bold ${colorRes}">${fila.Resultado}</td>
                                 <td class="text-danger fw-bold">${formatearFecha(fila.Prox_Rev_Fecha)}</td>
                                 <td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td>
-                                <td>${btnX}</td>`;
+                                <td class="text-end">${btnX}</td>`;
             }
             tbody.appendChild(tr);
         });
     }
 
-    // Alertas Inteligentes
+    // Alertas (Leyendo solo el último registro por categoría)
     async function analizarAlertas(forzarActualizacion = true) {
         const kmInput = document.getElementById('kmInput').value;
         if(forzarActualizacion) {
@@ -609,40 +672,49 @@
         if(!kmInput) return;
 
         const box = document.getElementById('alertasBox');
-        box.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm"></div> Analizando...</div>';
+        box.innerHTML = '<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-info"></div> Evaluando alertas...</div>';
 
         try {
             const [reqM, reqV] = await Promise.all([ fetch(`${GAS_URL}?hoja=Mantenimiento`), fetch(`${GAS_URL}?hoja=VTV_Documentacion`) ]);
-            const dataM = await reqM.json(); const dataV = await reqV.json();
+            let dataM = await reqM.json(); let dataV = await reqV.json();
             
+            dataM.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
+            dataV.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
+
+            const ultimosM = {};
+            dataM.forEach(item => { if(!ultimosM[item.Categoría]) ultimosM[item.Categoría] = item; });
+            
+            const ultimosV = {};
+            dataV.forEach(item => { if(!ultimosV[item.Categoría]) ultimosV[item.Categoría] = item; });
+
             let alertasHTML = "";
             const hoy = new Date();
 
-            dataM.forEach(item => {
+            Object.values(ultimosM).forEach(item => {
                 if(item.Prox_Rev_Km) {
                     const diffKm = parseInt(item.Prox_Rev_Km) - parseInt(kmInput);
-                    if(diffKm <= 0) alertasHTML += `<div class="alert alert-danger shadow-sm">🚨 <strong>KM VENCIDO:</strong> ${item.Categoría} (${item.SubCategoria}) debió hacerse a los ${item.Prox_Rev_Km} km.</div>`;
-                    else if(diffKm <= 1500) alertasHTML += `<div class="alert alert-warning shadow-sm">⚠️ <strong>PRÓXIMO POR KM:</strong> ${item.Categoría} toca en ${diffKm} km.</div>`;
+                    if(diffKm <= 0) alertasHTML += `<div class="alert alert-danger shadow-sm border-0">🚨 <strong>KM VENCIDO:</strong> ${item.Categoría} (${item.SubCategoria}) debió hacerse a los ${item.Prox_Rev_Km} km.</div>`;
+                    else if(diffKm <= 1500) alertasHTML += `<div class="alert alert-warning shadow-sm border-0 text-dark">⚠️ <strong>PRÓXIMO POR KM:</strong> ${item.Categoría} toca en ${diffKm} km.</div>`;
                 }
                 if(item.Prox_Rev_Fecha) {
                     const fRev = new Date(item.Prox_Rev_Fecha);
                     const diffDias = Math.ceil((fRev - hoy) / (1000 * 60 * 60 * 24));
-                    if(diffDias < 0) alertasHTML += `<div class="alert alert-danger shadow-sm">⏰ <strong>FECHA VENCIDA:</strong> ${item.Categoría} venció el ${formatearFecha(item.Prox_Rev_Fecha)}.</div>`;
-                    else if(diffDias <= 30) alertasHTML += `<div class="alert alert-warning shadow-sm">📅 <strong>PRÓXIMO POR FECHA:</strong> ${item.Categoría} vence en ${diffDias} días.</div>`;
+                    if(diffDias < 0) alertasHTML += `<div class="alert alert-danger shadow-sm border-0">⏰ <strong>FECHA VENCIDA:</strong> ${item.Categoría} venció el ${formatearFecha(item.Prox_Rev_Fecha)}.</div>`;
+                    else if(diffDias <= 30) alertasHTML += `<div class="alert alert-warning shadow-sm border-0 text-dark">📅 <strong>PRÓXIMO POR FECHA:</strong> ${item.Categoría} vence en ${diffDias} días.</div>`;
                 }
             });
 
-            dataV.forEach(item => {
+            Object.values(ultimosV).forEach(item => {
                 if(item.Prox_Rev_Fecha) {
                     const fRev = new Date(item.Prox_Rev_Fecha);
                     const diffDias = Math.ceil((fRev - hoy) / (1000 * 60 * 60 * 24));
-                    if(diffDias < 0) alertasHTML += `<div class="alert alert-danger shadow-sm">🚓 <strong>VTV VENCIDA:</strong> Venció el ${formatearFecha(item.Prox_Rev_Fecha)}.</div>`;
-                    else if(diffDias <= 30) alertasHTML += `<div class="alert alert-warning shadow-sm">📄 <strong>VTV PRÓXIMA:</strong> Vence en ${diffDias} días.</div>`;
+                    if(diffDias < 0) alertasHTML += `<div class="alert alert-danger shadow-sm border-0">🚓 <strong>VTV VENCIDA:</strong> Venció el ${formatearFecha(item.Prox_Rev_Fecha)}.</div>`;
+                    else if(diffDias <= 30) alertasHTML += `<div class="alert alert-warning shadow-sm border-0 text-dark">📄 <strong>VTV PRÓXIMA:</strong> Vence en ${diffDias} días.</div>`;
                 }
             });
 
-            box.innerHTML = alertasHTML || `<div class="alert alert-success shadow-sm">✅ <strong>¡Todo al día!</strong> No hay alertas de KM ni de Fechas.</div>`;
-        } catch (e) { box.innerHTML = '<div class="alert alert-danger">Error de lectura.</div>'; }
+            box.innerHTML = alertasHTML || `<div class="alert alert-success shadow-sm border-0 text-dark">✅ <strong>¡Todo al día!</strong> No hay alertas de KM ni de Fechas en tu Argo.</div>`;
+        } catch (e) { box.innerHTML = '<div class="alert alert-danger border-0">Error de lectura de datos.</div>'; }
     }
 
     function mostrarCarga(txt) { document.getElementById('loadingText').innerText = txt; document.getElementById('loadingOverlay').style.display = 'block'; }
