@@ -176,7 +176,7 @@
                         <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Categoría</label>
                             <select id="m_cat" class="form-select" required>
-                                <option value="Batería">🔋 Batería</option>
+                                <option value="Encendido y Batería">🔋 Encendido y Batería</option>
                                 <option value="Cambio de Aceite">🛢️ Cambio de Aceite</option>
                                 <option value="Cubiertas">🛞 Cubiertas</option>
                                 <option value="Frenos">🛑 Frenos</option>
@@ -437,10 +437,11 @@
         if(kmGuardado) analizarAlertas(false);
     };
 
-    // --- NUEVO: MOTOR DE EMOJIS ---
+    // --- NUEVO: MOTOR DE EMOJIS ACTUALIZADO ---
     function conEmoji(cat) {
         const mapas = {
-            "Batería": "🔋 Batería",
+            "Encendido y Batería": "🔋 Encendido y Batería",
+            "Batería": "🔋 Encendido y Batería", // Por si quedó algún registro viejo guardado
             "Cambio de Aceite": "🛢️ Cambio de Aceite",
             "Cubiertas": "🛞 Cubiertas",
             "Frenos": "🛑 Frenos",
@@ -647,7 +648,6 @@
 
         const mesesOrdenados = Object.keys(agrupar).sort((a, b) => agrupar[a].fData - agrupar[b].fData);
         
-        // --- COLORES PASTELES Y ORDEN DE GRÁFICO (Abajo hacia arriba: Fijos, Combus, Manto, VTV) ---
         const ctx = document.getElementById('costosChart').getContext('2d');
         if (miGrafico) miGrafico.destroy(); 
         miGrafico = new Chart(ctx, {
@@ -668,7 +668,7 @@
             }
         });
 
-        // --- TOTALES AGRUPADOS POR AÑO ---
+        // --- CÁLCULO DE TOTALES POR AÑO Y MESES COMO SUBTOTALES ---
         const mesesRecientes = [...mesesOrdenados].reverse();
         const tbodyTotales = document.getElementById('tablaTotalesMensuales');
         tbodyTotales.innerHTML = '';
@@ -677,18 +677,36 @@
             tbodyTotales.innerHTML = '<tr><td colspan="2" class="text-center text-muted">Aún no hay gastos registrados</td></tr>'; return;
         }
 
+        // 1. Pre-calcular totales anuales
+        const totalesPorAnio = {};
+        mesesRecientes.forEach(mes => {
+            let year = mes.split(' ')[1];
+            if(!totalesPorAnio[year]) totalesPorAnio[year] = 0;
+            totalesPorAnio[year] += agrupar[mes].total;
+        });
+
+        // 2. Dibujar tabla
         let currentYear = '';
         mesesRecientes.forEach(mes => {
             let year = mes.split(' ')[1];
             let justMonth = mes.split(' ')[0];
             
-            // Inyectar fila de año como separador visual
+            // Fila de Año con su Total
             if (year !== currentYear) {
-                tbodyTotales.innerHTML += `<tr><td colspan="2" class="fw-bold text-center text-light bg-secondary bg-opacity-25 py-2">${year}</td></tr>`;
+                tbodyTotales.innerHTML += `
+                    <tr class="table-active">
+                        <td class="fw-bold text-info bg-secondary bg-opacity-25 py-2">📅 ${year}</td>
+                        <td class="text-end fw-bold text-info bg-secondary bg-opacity-25 py-2">${formatPlata(totalesPorAnio[year])}</td>
+                    </tr>`;
                 currentYear = year;
             }
             
-            tbodyTotales.innerHTML += `<tr><td class="text-light ps-3">${justMonth}</td><td class="text-end"><strong class="text-success">${formatPlata(agrupar[mes].total)}</strong></td></tr>`;
+            // Fila de Mes (Subtotal)
+            tbodyTotales.innerHTML += `
+                <tr>
+                    <td class="text-light ps-4">↳ ${justMonth}</td>
+                    <td class="text-end text-success">${formatPlata(agrupar[mes].total)}</td>
+                </tr>`;
         });
     }
 
@@ -800,7 +818,6 @@
                 }
             });
 
-            // Cartel de Todo al día corregido (Letra clara)
             box.innerHTML = alertasHTML || `<div class="alert shadow-sm border-0 text-light bg-success bg-opacity-75">✅ <strong>¡Todo al día!</strong> No hay alertas de KM ni de Fechas en tu Argo.</div>`;
         } catch (e) { box.innerHTML = '<div class="alert alert-danger border-0">Error de lectura de datos.</div>'; }
     }
