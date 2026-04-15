@@ -132,11 +132,11 @@
             <div class="col-lg-4 mb-4">
                 <div class="card h-100">
                     <div class="card-body d-flex flex-column">
-                        <h6 class="card-title text-success fw-bold mb-3">📋 Totalizado por Mes</h6>
+                        <h6 class="card-title text-success fw-bold mb-3">📋 Totalizado por Periodo</h6>
                         <div class="table-responsive flex-grow-1" style="max-height: 300px; overflow-y: auto;">
                             <table class="table table-dark table-totals table-hover mb-0">
                                 <thead class="table-light sticky-top">
-                                    <tr><th>Mes</th><th class="text-end">Monto Total</th></tr>
+                                    <tr><th>Período</th><th class="text-end">Monto Total</th></tr>
                                 </thead>
                                 <tbody id="tablaTotalesMensuales">
                                 </tbody>
@@ -147,7 +147,7 @@
             </div>
         </div>
 
-        <h6 class="mb-3 text-secondary fw-bold mt-2">Últimos Trabajos Realizados</h6>
+        <h6 class="mb-3 text-secondary fw-bold mt-2">Últimos Gastos</h6>
         <div class="row" id="dashboardCards"></div>
 
         <hr class="my-4 border-secondary">
@@ -358,7 +358,7 @@
                 <div class="table-responsive">
                     <table class="table table-dark table-hover mb-0">
                         <thead class="table-light">
-                            <tr><th>Fecha</th><th>Trámite</th><th>Resultado</th><th>Vencimiento</th><th>Costo</th><th></th></tr>
+                            <tr><th>Fecha</th><th>Trámite</th><th>Resultado</th><th>Vencimiento</th><th>Km</th><th>Costo</th><th></th></tr>
                         </thead>
                         <tbody id="tabla_VTV_Documentacion"></tbody>
                     </table>
@@ -377,9 +377,8 @@
     // =========================================================
     // INYECCIÓN MÁGICA DE PWA (Manifest + Service Worker)
     // =========================================================
-    const iconUrl = "https://cdn-icons-png.flaticon.com/512/3202/3202003.png"; // Podes cambiar tu icono acá
+    const iconUrl = "https://cdn-icons-png.flaticon.com/512/3202/3202003.png"; 
     
-    // 1. Crear el Manifest al vuelo
     const manifestJson = {
         "name": "Control Vehicular",
         "short_name": "Mi Argo",
@@ -392,24 +391,22 @@
     const blobManifest = new Blob([JSON.stringify(manifestJson)], {type: 'application/manifest+json'});
     document.getElementById('manifestLink').setAttribute('href', URL.createObjectURL(blobManifest));
 
-    // 2. Crear y registrar un Service Worker falso (Requisito de Chrome)
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             const swCode = `
                 self.addEventListener('install', (e) => { self.skipWaiting(); });
-                self.addEventListener('fetch', (e) => { }); // Dummy fetch
+                self.addEventListener('fetch', (e) => { }); 
             `;
             const blobSW = new Blob([swCode], { type: 'application/javascript' });
             navigator.serviceWorker.register(URL.createObjectURL(blobSW));
         });
     }
 
-    // 3. Capturar evento para mostrar nuestro botón de instalar
     let eventoInstalacion = null;
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         eventoInstalacion = e;
-        document.getElementById('btnInstalarApp').style.display = 'block'; // Muestra el botón mágico
+        document.getElementById('btnInstalarApp').style.display = 'block'; 
     });
 
     function instalarAppPWA() {
@@ -439,6 +436,24 @@
         cargarResumenDashboard(); 
         if(kmGuardado) analizarAlertas(false);
     };
+
+    // --- NUEVO: MOTOR DE EMOJIS ---
+    function conEmoji(cat) {
+        const mapas = {
+            "Batería": "🔋 Batería",
+            "Cambio de Aceite": "🛢️ Cambio de Aceite",
+            "Cubiertas": "🛞 Cubiertas",
+            "Frenos": "🛑 Frenos",
+            "Distribución": "⚙️ Correa / Distribución",
+            "Otros": "🔧 Otros",
+            "Combustible": "⛽ Combustible",
+            "Seguro": "🛡️ Seguro",
+            "Patente": "🏛️ Patente",
+            "Cochera": "🏠 Cochera",
+            "VTV": "📄 VTV"
+        };
+        return mapas[cat] || cat; 
+    }
 
     // --- PARSEADOR INTELIGENTE DE FECHAS ---
     function parseLocalDate(fechaStr) {
@@ -521,7 +536,7 @@
         if(!arrayDatos || arrayDatos.length === 0) return '<p class="text-muted small">Aún no hay registros</p>';
         return arrayDatos.map(item => `
             <div class="small-list">
-                <strong class="text-light">${item.Categoría}</strong> ${item.SubCategoria ? `<span class="text-secondary">(${item.SubCategoria})</span>` : ''} <br>
+                <strong class="text-light">${conEmoji(item.Categoría)}</strong> ${item.SubCategoria ? `<span class="text-secondary">(${item.SubCategoria})</span>` : ''} <br>
                 <span class="text-muted">🗓️ ${formatearFecha(item.Fecha)} ${item.Costo ? `<span class="ms-2">💵 <strong class="text-success">${formatPlata(item.Costo)}</strong></span>` : ''}</span>
             </div>
         `).join('');
@@ -632,6 +647,7 @@
 
         const mesesOrdenados = Object.keys(agrupar).sort((a, b) => agrupar[a].fData - agrupar[b].fData);
         
+        // --- COLORES PASTELES Y ORDEN DE GRÁFICO (Abajo hacia arriba: Fijos, Combus, Manto, VTV) ---
         const ctx = document.getElementById('costosChart').getContext('2d');
         if (miGrafico) miGrafico.destroy(); 
         miGrafico = new Chart(ctx, {
@@ -639,10 +655,10 @@
             data: {
                 labels: mesesOrdenados,
                 datasets: [
-                    { label: 'VTV y Doc', data: mesesOrdenados.map(m => agrupar[m].vtv), backgroundColor: 'rgba(220, 53, 69, 0.4)', borderColor: '#dc3545', fill: true, tension: 0.3, borderWidth: 2 },
-                    { label: 'Gastos Fijos', data: mesesOrdenados.map(m => agrupar[m].gastos), backgroundColor: 'rgba(25, 135, 84, 0.4)', borderColor: '#198754', fill: true, tension: 0.3, borderWidth: 2 },
-                    { label: 'Combustible', data: mesesOrdenados.map(m => agrupar[m].combus), backgroundColor: 'rgba(255, 193, 7, 0.4)', borderColor: '#ffc107', fill: true, tension: 0.3, borderWidth: 2 },
-                    { label: 'Mantenimiento', data: mesesOrdenados.map(m => agrupar[m].manto), backgroundColor: 'rgba(13, 110, 253, 0.4)', borderColor: '#0d6efd', fill: true, tension: 0.3, borderWidth: 2 }
+                    { label: 'Gastos Fijos', data: mesesOrdenados.map(m => agrupar[m].gastos), backgroundColor: 'rgba(129, 199, 132, 0.3)', borderColor: '#81c784', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 2, pointHoverRadius: 4 },
+                    { label: 'Combustible', data: mesesOrdenados.map(m => agrupar[m].combus), backgroundColor: 'rgba(255, 213, 79, 0.3)', borderColor: '#ffd54f', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 2, pointHoverRadius: 4 },
+                    { label: 'Mantenimiento', data: mesesOrdenados.map(m => agrupar[m].manto), backgroundColor: 'rgba(100, 181, 246, 0.3)', borderColor: '#64b5f6', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 2, pointHoverRadius: 4 },
+                    { label: 'VTV y Doc', data: mesesOrdenados.map(m => agrupar[m].vtv), backgroundColor: 'rgba(229, 115, 115, 0.3)', borderColor: '#e57373', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 2, pointHoverRadius: 4 }
                 ]
             },
             options: {
@@ -652,6 +668,7 @@
             }
         });
 
+        // --- TOTALES AGRUPADOS POR AÑO ---
         const mesesRecientes = [...mesesOrdenados].reverse();
         const tbodyTotales = document.getElementById('tablaTotalesMensuales');
         tbodyTotales.innerHTML = '';
@@ -660,14 +677,24 @@
             tbodyTotales.innerHTML = '<tr><td colspan="2" class="text-center text-muted">Aún no hay gastos registrados</td></tr>'; return;
         }
 
+        let currentYear = '';
         mesesRecientes.forEach(mes => {
-            tbodyTotales.innerHTML += `<tr><td class="fw-bold text-light">${mes}</td><td class="text-end"><strong class="text-success">${formatPlata(agrupar[mes].total)}</strong></td></tr>`;
+            let year = mes.split(' ')[1];
+            let justMonth = mes.split(' ')[0];
+            
+            // Inyectar fila de año como separador visual
+            if (year !== currentYear) {
+                tbodyTotales.innerHTML += `<tr><td colspan="2" class="fw-bold text-center text-light bg-secondary bg-opacity-25 py-2">${year}</td></tr>`;
+                currentYear = year;
+            }
+            
+            tbodyTotales.innerHTML += `<tr><td class="text-light ps-3">${justMonth}</td><td class="text-end"><strong class="text-success">${formatPlata(agrupar[mes].total)}</strong></td></tr>`;
         });
     }
 
     async function cargarYRenderizarTabla(hoja) {
         const tbody = document.getElementById(`tabla_${hoja}`);
-        let colCount = hoja === 'Mantenimiento' ? 8 : (hoja === 'VTV_Documentacion' ? 6 : 5);
+        let colCount = hoja === 'Mantenimiento' ? 8 : (hoja === 'VTV_Documentacion' ? 7 : 5);
         tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center py-4"><div class="spinner-border spinner-border-sm text-info"></div> Cargando información...</td></tr>`;
         
         try {
@@ -687,7 +714,7 @@
         const select = document.getElementById(`filtro_${hoja}`);
         const categoriasUnicas = [...new Set(dataGlobal[hoja].map(item => item.Categoría))].filter(Boolean).sort();
         select.innerHTML = '<option value="">Todas las categorías</option>';
-        categoriasUnicas.forEach(cat => { select.innerHTML += `<option value="${cat}">${cat}</option>`; });
+        categoriasUnicas.forEach(cat => { select.innerHTML += `<option value="${cat}">${conEmoji(cat)}</option>`; });
         select.value = filtros[hoja];
     }
 
@@ -702,7 +729,7 @@
 
     function renderizarTabla(hoja) {
         const tbody = document.getElementById(`tabla_${hoja}`);
-        let colCount = hoja === 'Mantenimiento' ? 8 : (hoja === 'VTV_Documentacion' ? 6 : 5);
+        let colCount = hoja === 'Mantenimiento' ? 8 : (hoja === 'VTV_Documentacion' ? 7 : 5);
         tbody.innerHTML = '';
 
         const datosFiltrados = dataGlobal[hoja].filter(item => filtros[hoja] === '' || item.Categoría === filtros[hoja]);
@@ -720,13 +747,12 @@
             const btnX = `<button class="btn-delete" onclick="borrarRegistro('${fila.ID_Servicio}', '${hoja}')" title="Eliminar">❌</button>`;
             
             if(hoja === 'Mantenimiento') {
-                tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td class="fw-bold text-light">${fila.Categoría}</td><td class="text-muted">${fila.SubCategoria}</td><td>${fila.Km}</td><td><span class="badge bg-info text-dark">${fila.Prox_Rev_Km || '-'}</span></td><td><span class="badge bg-warning text-dark">${formatearFecha(fila.Prox_Rev_Fecha)}</span></td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td class="text-end">${btnX}</td>`;
+                tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td class="fw-bold text-light">${conEmoji(fila.Categoría)}</td><td class="text-muted">${fila.SubCategoria}</td><td>${fila.Km}</td><td><span class="badge bg-info text-dark">${fila.Prox_Rev_Km || '-'}</span></td><td><span class="badge bg-warning text-dark">${formatearFecha(fila.Prox_Rev_Fecha)}</span></td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td class="text-end">${btnX}</td>`;
             } else if(hoja === 'Gastos_Corrientes') {
-                const icono = fila.Categoría === 'Combustible' ? '⛽ ' : '';
-                tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td class="text-light">${icono}${fila.Categoría}</td><td class="text-muted">${fila.SubCategoria}</td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td class="text-end">${btnX}</td>`;
+                tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td class="text-light">${conEmoji(fila.Categoría)}</td><td class="text-muted">${fila.SubCategoria}</td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td class="text-end">${btnX}</td>`;
             } else if(hoja === 'VTV_Documentacion') {
                 const colorRes = fila.Resultado === 'Aprobado' ? 'text-success' : (fila.Resultado === 'Rechazado' ? 'text-danger' : 'text-warning');
-                tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td class="text-light">${fila.Categoría}</td><td class="fw-bold ${colorRes}">${fila.Resultado}</td><td class="text-danger fw-bold">${formatearFecha(fila.Prox_Rev_Fecha)}</td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td class="text-end">${btnX}</td>`;
+                tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td class="text-light">${conEmoji(fila.Categoría)}</td><td class="fw-bold ${colorRes}">${fila.Resultado}</td><td class="text-danger fw-bold">${formatearFecha(fila.Prox_Rev_Fecha)}</td><td>${fila.Km || '-'}</td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td class="text-end">${btnX}</td>`;
             }
             tbody.appendChild(tr);
         });
@@ -774,7 +800,8 @@
                 }
             });
 
-            box.innerHTML = alertasHTML || `<div class="alert alert-success shadow-sm border-0 text-dark">✅ <strong>¡Todo al día!</strong> No hay alertas de KM ni de Fechas en tu Argo.</div>`;
+            // Cartel de Todo al día corregido (Letra clara)
+            box.innerHTML = alertasHTML || `<div class="alert shadow-sm border-0 text-light bg-success bg-opacity-75">✅ <strong>¡Todo al día!</strong> No hay alertas de KM ni de Fechas en tu Argo.</div>`;
         } catch (e) { box.innerHTML = '<div class="alert alert-danger border-0">Error de lectura de datos.</div>'; }
     }
 
