@@ -11,8 +11,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Mi Argo">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3202/3202003.png">
     
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23e0e0e0' d='M0 0h512v512H0z'/%3E%3Cpath fill='%23757575' d='M416 192a64 64 0 1 0 0 128a64 64 0 1 0 0-128zm-224 0a64 64 0 1 0 0 128a64 64 0 1 0 0-128zm112 0a64 64 0 1 0 0 128a64 64 0 1 0 0-128zM368 64c-22.1 0-40 17.9-40 40c0 1.2.1 2.3.2 3.5l-127 63.5C199 168.1 195.6 168 192 168c-53 0-96 43-96 96s43 96 96 96c14.7 0 28.5-3.3 40.8-9.2l126 63c-.1 1.1-.2 2.2-.2 3.3c0 22.1 17.9 40 40 40s40-17.9 40-40s-17.9-40-40-40c-14.7 0-28.5 3.3-40.8 9.2l-126-63c.1-1.1.2-2.2.2-3.3c0-1.2-.1-2.3-.2-3.5l127-63.5c2.3 2.9 5.7 3.5 9.2 3.5c53 0 96-43 96-96s-43-96-96-96z'/%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23e0e0e0' d='M0 0h512v512H0z'/%3E%3Cpath fill='%23757575' d='M416 192a64 64 0 1 0 0 128a64 64 0 1 0 0-128zm-224 0a64 64 0 1 0 0 128a64 64 0 1 0 0-128zm112 0a64 64 0 1 0 0 128a64 64 0 1 0 0-128zM368 64c-22.1 0-40 17.9-40 40c0 1.2.1 2.3.2 3.5l-127 63.5C199 168.1 195.6 168 192 168c-53 0-96 43-96 96s43 96 96 96c14.7 0 28.5-3.3 40.8-9.2l126 63c-.1 1.1-.2 2.2-.2 3.3c0 22.1 17.9 40 40 40s40-17.9 40-40s-17.9-40-40-40c-14.7 0-28.5 3.3-40.8 9.2l-126-63c.1-1.1.2-2.2.2-3.3c0-1.2-.1-2.3-.2-3.5l127-63.5c2.3 2.9 5.7 3.5 9.2 3.5c53 0 96-43 96-96s-43-96-96-96z'/%3E%3C/svg%3E">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -52,7 +54,6 @@
         tbody tr { border-bottom: 1px solid #2d2d2d; }
         .table-totals th, .table-totals td { padding: 8px 12px; font-size: 0.8rem; }
         
-        /* Efecto Clickable para el Acordeón */
         .clickable-row { cursor: pointer; user-select: none; transition: background-color 0.2s; }
         .clickable-row:hover { background-color: #2a2a2a; }
         .sub-table-row { background-color: #161616; }
@@ -94,7 +95,7 @@
 </div>
 
 <div class="sidebar">
-    <h4>🚗 Garage Virtual</h4>
+    <h4>🚗 Garage Virtual AC 064 PP</h4>
     
     <button id="btnInstalarApp" class="btn btn-warning w-100 mb-3 fw-bold shadow-sm" style="display: none; color: #000;" onclick="instalarAppPWA()">
         📲 Instalar como App
@@ -377,14 +378,15 @@
 
 <script>
     // --- TU CONFIGURACIÓN AQUÍ ---
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbz7q0_NMZwI8YqZEhKiZOGqLSZQl_m4mJSRQg4DFITDV58D8PkZxJIsNU1DcVEZZOXS/exec"; // REEMPLAZAR
+    const GAS_URL = "TU_URL_DE_APPS_SCRIPT_AQUI"; // REEMPLAZAR
     const VEHICULO_ID = "V-01";
     const ITEMS_POR_PAGINA = 15;
     
     // =========================================================
     // INYECCIÓN MÁGICA DE PWA (Manifest + Service Worker)
     // =========================================================
-    const iconUrl = "https://cdn-icons-png.flaticon.com/512/3202/3202003.png"; 
+    // Icono vectorial (SVG) gris incrustado directamente
+    const iconUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23e0e0e0' d='M0 0h512v512H0z'/%3E%3Cpath fill='%23757575' d='M416 192a64 64 0 1 0 0 128a64 64 0 1 0 0-128zm-224 0a64 64 0 1 0 0 128a64 64 0 1 0 0-128zm112 0a64 64 0 1 0 0 128a64 64 0 1 0 0-128zM368 64c-22.1 0-40 17.9-40 40c0 1.2.1 2.3.2 3.5l-127 63.5C199 168.1 195.6 168 192 168c-53 0-96 43-96 96s43 96 96 96c14.7 0 28.5-3.3 40.8-9.2l126 63c-.1 1.1-.2 2.2-.2 3.3c0 22.1 17.9 40 40 40s40-17.9 40-40s-17.9-40-40-40c-14.7 0-28.5 3.3-40.8 9.2l-126-63c.1-1.1.2-2.2.2-3.3c0-1.2-.1-2.3-.2-3.5l127-63.5c2.3 2.9 5.7 3.5 9.2 3.5c53 0 96-43 96-96s-43-96-96-96z'/%3E%3C/svg%3E"; 
     
     const manifestJson = {
         "name": "Control Vehicular",
@@ -393,7 +395,7 @@
         "display": "standalone",
         "background_color": "#121212",
         "theme_color": "#121212",
-        "icons": [{ "src": iconUrl, "sizes": "512x512", "type": "image/png" }]
+        "icons": [{ "src": iconUrl, "sizes": "512x512", "type": "image/svg+xml" }]
     };
     const blobManifest = new Blob([JSON.stringify(manifestJson)], {type: 'application/manifest+json'});
     document.getElementById('manifestLink').setAttribute('href', URL.createObjectURL(blobManifest));
