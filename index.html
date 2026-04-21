@@ -36,7 +36,6 @@
             overscroll-behavior-y: contain; 
         }
 
-        /* Sidebar Refinada */
         .sidebar { 
             height: 100vh; 
             background: #000; 
@@ -75,23 +74,33 @@
         .section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Cards Profesionales */
         .card { 
             background-color: var(--bg-card); 
             border: 1px solid var(--border-subtle); 
             border-radius: 16px; 
             overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
         
-        .kpi-card { border: 1px solid var(--border-subtle); }
+        .kpi-card { border: 1px solid var(--border-subtle); background: linear-gradient(145deg, #18181b, #121214); transition: 0.2s; }
+        .kpi-card:hover { transform: translateY(-2px); border-color: #3f3f46; }
         .kpi-value { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.04em; }
-        .kpi-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; }
+        .kpi-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; margin-bottom: 5px; }
+        
+        /* Tablas */
+        .table-controls { background-color: var(--bg-card); border-bottom: 1px solid var(--border-subtle); }
+        .table-dark { background-color: var(--bg-card) !important; color: #d4d4d8; }
+        .table-light { background-color: #18181b; color: #fff; }
+        .table-light th { border-bottom: 1px solid var(--border-subtle); background-color: #18181b; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em;}
+        tbody tr { border-bottom: 1px solid #18181b; }
+        .table td { vertical-align: middle; }
         
         /* Acordeón de Gastos */
         .clickable-row { cursor: pointer; transition: background 0.2s; }
         .clickable-row:hover { background-color: #18181b; }
         .sub-table-row { background-color: #0c0c0e; }
-        .sub-table td { font-size: 0.75rem; padding: 10px 16px !important; color: var(--text-muted); border-bottom: 1px solid #18181b !important; }
+        .sub-table td { font-size: 0.75rem; padding: 10px 16px !important; color: var(--text-muted); border-bottom: 1px dashed #27272a !important; }
+        .sub-table tr:last-child td { border-bottom: none !important; }
         
         .form-control, .form-select { 
             background-color: #18181b; 
@@ -99,20 +108,28 @@
             color: #fff; 
             padding: 12px;
             border-radius: 10px;
+            font-size: 0.85rem;
         }
-        .form-control:focus { background-color: #18181b; border-color: var(--accent-blue); box-shadow: none; color: #fff; }
+        .form-control:focus, .form-select:focus { background-color: #18181b; border-color: var(--accent-blue); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); color: #fff; }
+        .form-label { font-size: 0.8rem; color: var(--text-muted); }
 
-        .btn-success { background-color: var(--accent-blue); border: none; border-radius: 10px; font-weight: 600; padding: 12px; }
+        .btn-success { background-color: var(--accent-blue); border: none; border-radius: 10px; font-weight: 600; padding: 12px; letter-spacing: 0.5px;}
         .btn-success:hover { background-color: #2563eb; }
+        
+        .btn-delete { color: #ef4444; background: none; border: none; font-size: 0.85rem; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: 0.2s; }
+        .btn-delete:hover { background: rgba(239, 68, 68, 0.1); }
+        
+        .chart-container { position: relative; height: 300px; width: 100%; }
 
         #loadingOverlay { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.8); z-index: 2000; backdrop-filter: blur(8px);
+            background: rgba(0,0,0,0.85); z-index: 2000; backdrop-filter: blur(8px);
         }
 
         @media (max-width: 768px) {
             .sidebar { height: auto; width: 100%; position: relative; border-right: none; border-bottom: 1px solid var(--border-subtle); }
             .main-content { margin-left: 0; padding: 20px; }
+            .kpi-value { font-size: 1.2rem; }
         }
     </style>
 </head>
@@ -120,7 +137,7 @@
 
 <div id="loadingOverlay" class="d-flex flex-column justify-content-center align-items-center">
     <div class="spinner-border text-primary" role="status"></div>
-    <p class="mt-3 fw-medium" id="loadingText">Sincronizando datos...</p>
+    <p class="mt-3 fw-medium text-light" id="loadingText">Sincronizando datos...</p>
 </div>
 
 <div class="sidebar">
@@ -142,29 +159,31 @@
 </div>
 
 <div class="main-content">
+    
     <div id="dashboard" class="section active">
         <div class="d-flex justify-content-between align-items-end mb-4">
-            <h2 class="fw-bold mb-0">Resumen Operativo</h2>
-            <span class="text-muted small">Última actualización: Hoy</span>
+            <h3 class="fw-bold mb-0">Resumen Operativo</h3>
         </div>
         
-        <div class="row mb-4" id="kpiContainer"></div>
+        <div class="row mb-4" id="kpiContainer">
+            <div class="col-12 text-center text-muted small"><div class="spinner-border spinner-border-sm text-primary"></div> Calculando métricas...</div>
+        </div>
 
         <div class="row">
             <div class="col-lg-8 mb-4">
                 <div class="card h-100">
                     <div class="card-body">
-                        <h6 class="text-muted fw-bold mb-4">Evolución de Costos</h6>
+                        <h6 class="text-muted fw-bold mb-4 small text-uppercase">Evolución de Costos Mensuales</h6>
                         <div class="chart-container"><canvas id="costosChart"></canvas></div>
                     </div>
                 </div>
             </div>
             <div class="col-lg-4 mb-4">
                 <div class="card h-100">
-                    <div class="card-body">
-                        <h6 class="text-muted fw-bold mb-4">Totalizado por Período</h6>
-                        <div class="table-responsive" style="max-height: 350px;">
-                            <table class="table table-dark table-totals mb-0">
+                    <div class="card-body p-0 d-flex flex-column">
+                        <h6 class="text-muted fw-bold p-4 pb-2 mb-0 small text-uppercase">Totalizado por Período</h6>
+                        <div class="table-responsive flex-grow-1" style="max-height: 300px; overflow-y: auto;">
+                            <table class="table table-dark table-totals mb-0 border-0">
                                 <tbody id="tablaTotalesMensuales"></tbody>
                             </table>
                         </div>
@@ -173,22 +192,22 @@
             </div>
         </div>
 
-        <h6 class="text-muted fw-bold mb-3">Últimos Gastos Registrados</h6>
+        <h6 class="text-muted fw-bold mb-3 small text-uppercase mt-2">Últimos Gastos Registrados</h6>
         <div class="row mb-4" id="dashboardCards"></div>
 
-        <div class="card border-primary bg-primary bg-opacity-10 mb-4">
-            <div class="card-body d-flex align-items-center justify-content-between">
-                <div>
-                    <h6 class="fw-bold mb-1">Estado de Alertas</h6>
-                    <p class="text-muted small mb-0">Km actual: <span id="ultimoKmGuardado">0</span> km</p>
+        <div class="card mb-4" style="border-color: rgba(59, 130, 246, 0.3);">
+            <div class="card-body">
+                <h6 class="text-info fw-bold mb-1">Control de Alertas (Km y Fechas)</h6>
+                <p class="text-muted small mb-3">Último kilometraje ingresado: <strong class="text-light" id="ultimoKmGuardado">-</strong> km</p>
+                <div class="input-group mb-4" style="max-width: 400px;">
+                    <input type="number" id="kmInput" class="form-control" placeholder="Actualizar km...">
+                    <button class="btn btn-primary fw-bold" onclick="analizarAlertas()">Chequear Estado</button>
                 </div>
-                <div class="d-flex gap-2">
-                    <input type="number" id="kmInput" class="form-control form-control-sm w-auto" placeholder="Actualizar Km">
-                    <button class="btn btn-primary btn-sm px-3" onclick="analizarAlertas()">Chequear</button>
+                <div id="alertasBox">
+                    <div class="alert text-center" style="background-color: #18181b; border: 1px dashed var(--border-subtle); color: var(--text-muted);">Analizando el estado...</div>
                 </div>
             </div>
         </div>
-        <div id="alertasBox"></div>
     </div>
 
     <div id="mantenimiento" class="section">
@@ -196,16 +215,39 @@
         <div class="card mb-4 p-4">
             <form onsubmit="procesarEnvio(event, 'Mantenimiento')">
                 <div class="row g-3">
-                    <div class="col-md-4"><label class="form-label small fw-bold">Categoría</label><select id="m_cat" class="form-select"><option value="Encendido y Batería">🔋 Encendido y Batería</option><option value="Cambio de Aceite">🛢️ Cambio de Aceite</option><option value="Cubiertas">🛞 Cubiertas</option><option value="Frenos">🛑 Frenos</option><option value="Distribución">⚙️ Correa / Distribución</option><option value="Otros">🔧 Otros</option></select></div>
-                    <div class="col-md-5"><label class="form-label small fw-bold">Detalle</label><input type="text" id="m_sub" class="form-control" placeholder="Ej: Aceite 5W30" required></div>
-                    <div class="col-md-3"><label class="form-label small fw-bold">Costo ($)</label><input type="number" id="m_costo" class="form-control" required></div>
-                    <div class="col-md-6"><label class="form-label small fw-bold">Fecha</label><input type="date" id="m_fec" class="form-control" required></div>
-                    <div class="col-md-6"><label class="form-label small fw-bold">Km Actual</label><input type="number" id="m_km" class="form-control" required></div>
-                    <div class="col-12"><button type="submit" class="btn btn-success w-100">Registrar Mantenimiento</button></div>
+                    <div class="col-md-4"><label class="form-label fw-bold">Categoría</label><select id="m_cat" class="form-select" required><option value="Encendido y Batería">🔋 Encendido y Batería</option><option value="Cambio de Aceite">🛢️ Cambio de Aceite</option><option value="Cubiertas">🛞 Cubiertas</option><option value="Frenos">🛑 Frenos</option><option value="Distribución">⚙️ Correa / Distribución</option><option value="Otros">🔧 Otros</option></select></div>
+                    <div class="col-md-5"><label class="form-label fw-bold">Detalle</label><input type="text" id="m_sub" class="form-control" placeholder="Ej: Aceite 5W30" required></div>
+                    <div class="col-md-3"><label class="form-label fw-bold text-success">Costo ($)</label><input type="number" id="m_costo" class="form-control" placeholder="Ej: 85000"></div>
+                    <div class="col-md-6"><label class="form-label fw-bold">Fecha</label><input type="date" id="m_fec" class="form-control" required></div>
+                    <div class="col-md-6"><label class="form-label fw-bold">Kilometraje</label><input type="number" id="m_km" class="form-control" required></div>
                 </div>
+                <div class="row g-3 p-3 mt-3 rounded" style="background-color: #0c0c0e; border: 1px dashed var(--border-subtle);">
+                    <div class="col-md-6"><label class="form-label fw-bold text-info">Próxima Revisión (Km)</label><input type="number" id="m_prox_km" class="form-control"></div>
+                    <div class="col-md-6"><label class="form-label fw-bold text-info">Próxima Revisión (Fecha)</label><input type="date" id="m_prox_fec" class="form-control"></div>
+                </div>
+                <button type="submit" class="btn btn-success w-100 mt-4">Guardar Mantenimiento</button>
             </form>
         </div>
-        <div class="card"><div class="table-responsive"><table class="table table-dark mb-0"><thead class="table-light"><tr><th>Fecha</th><th>Categoría</th><th>Detalle</th><th>Km</th><th>Costo</th><th></th></tr></thead><tbody id="tabla_Mantenimiento"></tbody></table></div></div>
+        
+        <div class="card">
+            <div class="d-flex flex-wrap justify-content-between align-items-center p-3 table-controls">
+                <div class="d-flex align-items-center mb-2 mb-md-0">
+                    <label class="me-2 fw-bold text-muted small">Filtrar:</label>
+                    <select id="filtro_Mantenimiento" class="form-select form-select-sm w-auto border-0" style="background: #0c0c0e;" onchange="aplicarFiltro('Mantenimiento')"><option value="">Todas</option></select>
+                </div>
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="cambiarPagina('Mantenimiento', -1)">◀</button>
+                    <span id="pageInfo_Mantenimiento" class="mx-3 fw-bold text-muted small">Pág 1 / 1</span>
+                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="cambiarPagina('Mantenimiento', 1)">▶</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dark mb-0">
+                    <thead class="table-light"><tr><th>Fecha</th><th>Categoría</th><th>Detalle</th><th>Km</th><th>Próx. Km</th><th>Próx. Fecha</th><th>Costo</th><th></th></tr></thead>
+                    <tbody id="tabla_Mantenimiento"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <div id="gastos" class="section">
@@ -213,14 +255,34 @@
         <div class="card mb-4 p-4">
             <form onsubmit="procesarEnvio(event, 'Gastos_Corrientes')">
                 <div class="row g-3">
-                    <div class="col-md-4"><label class="form-label small fw-bold">Categoría</label><select id="g_cat" class="form-select"><option value="Combustible">⛽ Combustible</option><option value="Seguro">🛡️ Seguro</option><option value="Patente">🏛️ Patente</option><option value="Cochera">🏠 Cochera</option></select></div>
-                    <div class="col-md-5"><label class="form-label small fw-bold">Detalle</label><input type="text" id="g_sub" class="form-control" required></div>
-                    <div class="col-md-3"><label class="form-label small fw-bold">Importe</label><input type="number" id="g_costo" class="form-control" required></div>
-                    <div class="col-12"><button type="submit" class="btn btn-success w-100">Registrar Pago</button></div>
+                    <div class="col-md-4"><label class="form-label fw-bold">Categoría</label><select id="g_cat" class="form-select" required><option value="Combustible">⛽ Combustible</option><option value="Seguro">🛡️ Seguro</option><option value="Patente">🏛️ Patente</option><option value="Cochera">🏠 Cochera</option></select></div>
+                    <div class="col-md-5"><label class="form-label fw-bold">Detalle</label><input type="text" id="g_sub" class="form-control" placeholder="Ej: V-Power" required></div>
+                    <div class="col-md-3"><label class="form-label fw-bold text-success">Importe ($)</label><input type="number" id="g_costo" class="form-control" required></div>
+                    <div class="col-md-12"><label class="form-label fw-bold">Fecha de Pago</label><input type="date" id="g_fec" class="form-control" required></div>
                 </div>
+                <button type="submit" class="btn btn-success w-100 mt-4">Registrar Pago</button>
             </form>
         </div>
-        <div class="card"><div class="table-responsive"><table class="table table-dark mb-0"><thead class="table-light"><tr><th>Fecha</th><th>Categoría</th><th>Detalle</th><th>Importe</th><th></th></tr></thead><tbody id="tabla_Gastos_Corrientes"></tbody></table></div></div>
+        
+        <div class="card">
+            <div class="d-flex flex-wrap justify-content-between align-items-center p-3 table-controls">
+                <div class="d-flex align-items-center mb-2 mb-md-0">
+                    <label class="me-2 fw-bold text-muted small">Filtrar:</label>
+                    <select id="filtro_Gastos_Corrientes" class="form-select form-select-sm w-auto border-0" style="background: #0c0c0e;" onchange="aplicarFiltro('Gastos_Corrientes')"><option value="">Todas</option></select>
+                </div>
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="cambiarPagina('Gastos_Corrientes', -1)">◀</button>
+                    <span id="pageInfo_Gastos_Corrientes" class="mx-3 fw-bold text-muted small">Pág 1 / 1</span>
+                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="cambiarPagina('Gastos_Corrientes', 1)">▶</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dark mb-0">
+                    <thead class="table-light"><tr><th>Fecha</th><th>Categoría</th><th>Detalle</th><th>Importe</th><th></th></tr></thead>
+                    <tbody id="tabla_Gastos_Corrientes"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <div id="vtv" class="section">
@@ -228,134 +290,452 @@
         <div class="card mb-4 p-4">
             <form onsubmit="procesarEnvio(event, 'VTV_Documentacion')">
                 <div class="row g-3">
-                    <div class="col-md-6"><label class="form-label small fw-bold">Resultado</label><select id="v_res" class="form-select"><option value="Aprobado">✅ Aprobado</option><option value="Condicional">⚠️ Condicional</option><option value="Rechazado">❌ Rechazado</option></select></div>
-                    <div class="col-md-6"><label class="form-label small fw-bold">Próximo Vencimiento</label><input type="date" id="v_prox_fec" class="form-control" required></div>
-                    <div class="col-12"><button type="submit" class="btn btn-success w-100">Actualizar VTV</button></div>
+                    <div class="col-md-4"><label class="form-label fw-bold">Trámite</label><input type="text" id="v_cat" class="form-control" value="VTV" required></div>
+                    <div class="col-md-4"><label class="form-label fw-bold">Resultado</label><select id="v_res" class="form-select" required><option value="Aprobado">✅ Aprobado</option><option value="Condicional">⚠️ Condicional</option><option value="Rechazado">❌ Rechazado</option></select></div>
+                    <div class="col-md-4"><label class="form-label fw-bold text-success">Costo Trámite ($)</label><input type="number" id="v_costo" class="form-control"></div>
+                    <div class="col-md-4"><label class="form-label fw-bold">Fecha Realización</label><input type="date" id="v_fec" class="form-control" required></div>
+                    <div class="col-md-4"><label class="form-label fw-bold">Km Actual</label><input type="number" id="v_km" class="form-control"></div>
+                    <div class="col-md-4"><label class="form-label fw-bold text-danger">Fecha Vencimiento</label><input type="date" id="v_prox_fec" class="form-control border-danger" required></div>
                 </div>
+                <button type="submit" class="btn btn-success w-100 mt-4">Registrar Documentación</button>
             </form>
         </div>
-        <div class="card"><div class="table-responsive"><table class="table table-dark mb-0"><thead class="table-light"><tr><th>Fecha</th><th>Categoría</th><th>Resultado</th><th>Vencimiento</th><th>Costo</th><th></th></tr></thead><tbody id="tabla_VTV_Documentacion"></tbody></table></div></div>
+        
+        <div class="card">
+            <div class="d-flex flex-wrap justify-content-between align-items-center p-3 table-controls">
+                <div class="d-flex align-items-center mb-2 mb-md-0">
+                    <label class="me-2 fw-bold text-muted small">Filtrar:</label>
+                    <select id="filtro_VTV_Documentacion" class="form-select form-select-sm w-auto border-0" style="background: #0c0c0e;" onchange="aplicarFiltro('VTV_Documentacion')"><option value="">Todas</option></select>
+                </div>
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="cambiarPagina('VTV_Documentacion', -1)">◀</button>
+                    <span id="pageInfo_VTV_Documentacion" class="mx-3 fw-bold text-muted small">Pág 1 / 1</span>
+                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="cambiarPagina('VTV_Documentacion', 1)">▶</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dark mb-0">
+                    <thead class="table-light"><tr><th>Fecha</th><th>Trámite</th><th>Resultado</th><th>Vencimiento</th><th>Km</th><th>Costo</th><th></th></tr></thead>
+                    <tbody id="tabla_VTV_Documentacion"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-    // URL ACTUALIZADA SEGÚN TU SOLICITUD
+    // =========================================================
+    // 🔥 CONFIGURACIÓN DE BASE DE DATOS 🔥
+    // =========================================================
     const GAS_URL = "https://script.google.com/macros/s/AKfycbz7q0_NMZwI8YqZEhKiZOGqLSZQl_m4mJSRQg4DFITDV58D8PkZxJIsNU1DcVEZZOXS/exec";
     const VEHICULO_ID = "V-01";
+    const ITEMS_POR_PAGINA = 15;
+    
+    // =========================================================
+    // INSTALACIÓN PWA
+    // =========================================================
+    const iconUrl = "https://cdn-icons-png.flaticon.com/512/3202/3202003.png"; 
+    const manifestJson = {
+        "name": "Garage Virtual",
+        "short_name": "Mi Argo",
+        "start_url": window.location.href,
+        "display": "standalone",
+        "background_color": "#09090b",
+        "theme_color": "#09090b",
+        "icons": [{ "src": iconUrl, "sizes": "512x512", "type": "image/png" }]
+    };
+    const blobManifest = new Blob([JSON.stringify(manifestJson)], {type: 'application/manifest+json'});
+    document.getElementById('manifestLink').setAttribute('href', URL.createObjectURL(blobManifest));
 
-    let dataGlobal = { 'Mantenimiento': [], 'Gastos_Corrientes': [], 'VTV_Documentacion': [] };
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            const swCode = `self.addEventListener('install', (e) => { self.skipWaiting(); }); self.addEventListener('fetch', (e) => { });`;
+            const blobSW = new Blob([swCode], { type: 'application/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(blobSW));
+        });
+    }
+
+    let eventoInstalacion = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        eventoInstalacion = e;
+        document.getElementById('btnInstalarApp').style.display = 'block'; 
+    });
+
+    function instalarAppPWA() {
+        if (eventoInstalacion) {
+            eventoInstalacion.prompt();
+            eventoInstalacion.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') document.getElementById('btnInstalarApp').style.display = 'none';
+                eventoInstalacion = null;
+            });
+        }
+    }
+
+    // =========================================================
+    // MOTOR PRINCIPAL JAVASCRIPT
+    // =========================================================
     let miGrafico = null;
+    let dataGlobal = { 'Mantenimiento': [], 'Gastos_Corrientes': [], 'VTV_Documentacion': [] };
+    let paginas = { 'Mantenimiento': 1, 'Gastos_Corrientes': 1, 'VTV_Documentacion': 1 };
+    let filtros = { 'Mantenimiento': '', 'Gastos_Corrientes': '', 'VTV_Documentacion': '' };
 
     window.onload = () => { 
-        const km = localStorage.getItem('ultimoKm') || 0;
-        document.getElementById('ultimoKmGuardado').innerText = km;
-        document.getElementById('kmInput').value = km;
+        const kmGuardado = localStorage.getItem('ultimoKm');
+        if(kmGuardado) {
+            document.getElementById('ultimoKmGuardado').innerText = kmGuardado;
+            document.getElementById('kmInput').value = kmGuardado;
+        }
         cargarResumenDashboard(); 
-        configurarPWA();
+        if(kmGuardado) analizarAlertas(false);
     };
 
-    // Funciones de utilidad visual (Refinadas)
+    function mostrarCarga(txt) { 
+        document.getElementById('loadingText').innerText = txt || "Sincronizando datos..."; 
+        document.getElementById('loadingOverlay').style.display = 'flex'; 
+    }
+    function ocultarCarga() { document.getElementById('loadingOverlay').style.display = 'none'; }
+
     function conEmoji(cat) {
-        const m = { "Encendido y Batería": "🔋", "Cambio de Aceite": "🛢️", "Cubiertas": "🛞", "Frenos": "🛑", "Distribución": "⚙️", "Otros": "🔧", "Combustible": "⛽", "Seguro": "🛡️", "Patente": "🏛️", "Cochera": "🏠", "VTV": "📄" };
-        return `${m[cat] || '•'} ${cat}`;
+        const mapas = {
+            "Encendido y Batería": "🔋 Encendido y Batería", "Batería": "🔋 Encendido y Batería", 
+            "Cambio de Aceite": "🛢️ Cambio de Aceite", "Cubiertas": "🛞 Cubiertas", "Frenos": "🛑 Frenos",
+            "Distribución": "⚙️ Correa / Distribución", "Otros": "🔧 Otros",
+            "Combustible": "⛽ Combustible", "Seguro": "🛡️ Seguro", "Patente": "🏛️ Patente",
+            "Cochera": "🏠 Cochera", "VTV": "📄 VTV"
+        };
+        return mapas[cat] || cat; 
     }
 
-    function formatPlata(n) {
-        return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0);
+    function parseLocalDate(fechaStr) {
+        if (!fechaStr) return null;
+        if (fechaStr.includes('T')) { let p = fechaStr.split('T')[0].split('-'); return new Date(p[0], parseInt(p[1])-1, p[2]); }
+        if (fechaStr.includes('/')) { let p = fechaStr.split('/'); if(p.length === 3 && p[2].length === 4) return new Date(p[2], parseInt(p[1])-1, p[0]); }
+        let d = new Date(fechaStr); return isNaN(d) ? null : d;
     }
 
-    function parseDate(s) {
-        if(!s) return null;
-        if(s.includes('T')) return new Date(s.split('T')[0].replace(/-/g, '/'));
-        if(s.includes('/')) { const p = s.split('/'); return new Date(p[2], p[1]-1, p[0]); }
-        return new Date(s);
+    function formatearFecha(fechaStr) {
+        let d = parseLocalDate(fechaStr);
+        return d ? `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}` : '-';
     }
 
-    function formatearFecha(s) {
-        const d = parseDate(s);
-        return d ? d.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'}) : '-';
+    function getSafeDate(fechaStr) { let d = parseLocalDate(fechaStr); return d ? d.getTime() : 0; }
+
+    function extraerMesAnio(fechaStr) {
+        let d = parseLocalDate(fechaStr);
+        if (!d) return null;
+        const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        return `${meses[d.getMonth()]} ${d.getFullYear()}`;
     }
 
-    // Lógica del Dashboard
-    async function cargarResumenDashboard() {
-        try {
-            const [rM, rG, rV] = await Promise.all([ fetch(`${GAS_URL}?hoja=Mantenimiento`), fetch(`${GAS_URL}?hoja=Gastos_Corrientes`), fetch(`${GAS_URL}?hoja=VTV_Documentacion`) ]);
-            const dM = await rM.json(); const dG = await rG.json(); const dV = await rV.json();
-            
-            renderKPIs(dM, dG, dV);
-            generarGrafico(dM, dG, dV);
-            renderUltimosGastos(dG);
-        } catch (e) { console.error(e); }
+    function formatPlata(num) {
+        if(!num || isNaN(num) || num == 0) return '$ 0';
+        return '$ ' + parseFloat(num).toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0});
     }
 
-    function renderKPIs(dM, dG, dV) {
-        const hoy = new Date();
-        const tresMeses = new Date(); tresMeses.setMonth(hoy.getMonth() - 3);
-        
-        let total3m = 0;
-        dG.concat(dM).concat(dV).forEach(i => {
-            const f = parseDate(i.Fecha);
-            if(f >= tresMeses && f <= hoy) total3m += parseFloat(i.Costo || 0);
-        });
-
-        const container = document.getElementById('kpiContainer');
-        container.innerHTML = `
-            <div class="col-md-4 mb-3"><div class="card kpi-card p-3"><div class="kpi-label">Promedio Mensual (3M)</div><div class="kpi-value">${formatPlata(total3m / 3)}</div></div></div>
-            <div class="col-md-4 mb-3"><div class="card kpi-card p-3"><div class="kpi-label">Proyección Próximo Mes</div><div class="kpi-value text-info">${formatPlata((total3m / 3) * 1.05)}</div></div></div>
-            <div class="col-md-4 mb-3"><div class="card kpi-card p-3"><div class="kpi-label">Kilometraje Actual</div><div class="kpi-value">${localStorage.getItem('ultimoKm') || 0} km</div></div></div>
-        `;
-    }
-
-    function generarGrafico(dM, dG, dV) {
-        const agrupar = {};
-        const todos = dM.concat(dG).concat(dV);
-        todos.forEach(i => {
-            const d = parseDate(i.Fecha);
-            if(!d) return;
-            const k = `${d.getMonth()+1}/${d.getFullYear()}`;
-            agrupar[k] = (agrupar[k] || 0) + parseFloat(i.Costo || 0);
-        });
-
-        const labels = Object.keys(agrupar).slice(-6);
-        const values = labels.map(l => agrupar[l]);
-
-        if(miGrafico) miGrafico.destroy();
-        miGrafico = new Chart(document.getElementById('costosChart'), {
-            type: 'line',
-            data: { labels, datasets: [{ label: 'Gastos', data: values, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4 }] },
-            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#27272a' } }, x: { grid: { display: false } } } }
-        });
-
-        // Tabla lateral
-        const tbody = document.getElementById('tablaTotalesMensuales');
-        tbody.innerHTML = labels.reverse().map(l => `<tr><td>${l}</td><td class="text-end fw-bold">${formatPlata(agrupar[l])}</td></tr>`).join('');
-    }
-
-    function renderUltimosGastos(dG) {
-        const ult = dG.slice(0, 3);
-        document.getElementById('dashboardCards').innerHTML = ult.map(i => `
-            <div class="col-md-4 mb-2"><div class="card p-3 border-0 bg-dark"><div class="small text-muted">${formatearFecha(i.Fecha)}</div><div class="fw-bold">${i.Categoría}</div><div class="text-success">${formatPlata(i.Costo)}</div></div></div>
-        `).join('');
-    }
-
-    async function procesarEnvio(e, hoja) {
-        e.preventDefault();
-        document.getElementById('loadingOverlay').style.display = 'flex';
-        // Lógica de guardado simplificada para brevedad
-        setTimeout(() => { location.reload(); }, 1500);
+    function toggleDetalleMes(id) {
+        const fila = document.getElementById(`detalle-${id}`);
+        const icon = document.getElementById(`icon-${id}`);
+        if(fila.style.display === 'none') {
+            fila.style.display = 'table-row'; icon.innerText = '🔽';
+        } else {
+            fila.style.display = 'none'; icon.innerText = '▶️';
+        }
     }
 
     function switchSection(id) {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
         document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        
+        const link = Array.from(document.querySelectorAll('.nav-link')).find(l => l.innerText.toLowerCase().includes(id.substring(0,3)));
+        if(link) link.classList.add('active');
+
+        if(id === 'dashboard') cargarResumenDashboard();
+        else cargarYRenderizarTabla(id === 'gastos' ? 'Gastos_Corrientes' : (id === 'vtv' ? 'VTV_Documentacion' : 'Mantenimiento'));
     }
 
-    function configurarPWA() {
-        const sw = `self.addEventListener('fetch', function(event) {});`;
-        const blob = new Blob([sw], {type: 'text/javascript'});
-        if('serviceWorker' in navigator) navigator.serviceWorker.register(URL.createObjectURL(blob));
+    // --- LOGICA CRUD ---
+    async function procesarEnvio(event, hoja) {
+        event.preventDefault();
+        mostrarCarga("Guardando en la base de datos...");
+        const idServ = "S-" + Date.now();
+        let valores = [];
+
+        if(hoja === 'Mantenimiento') valores = [idServ, VEHICULO_ID, document.getElementById('m_cat').value, document.getElementById('m_sub').value, document.getElementById('m_fec').value, document.getElementById('m_km').value, document.getElementById('m_prox_km').value, document.getElementById('m_prox_fec').value, document.getElementById('m_costo').value];
+        else if(hoja === 'Gastos_Corrientes') valores = [idServ, VEHICULO_ID, document.getElementById('g_cat').value, document.getElementById('g_sub').value, document.getElementById('g_fec').value, document.getElementById('g_costo').value];
+        else if(hoja === 'VTV_Documentacion') valores = [idServ, VEHICULO_ID, document.getElementById('v_cat').value, document.getElementById('v_fec').value, document.getElementById('v_km').value, document.getElementById('v_prox_fec').value, document.getElementById('v_res').value, document.getElementById('v_costo').value];
+
+        try {
+            await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'insert', hoja: hoja, valores: valores }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+            event.target.reset();
+            cargarYRenderizarTabla(hoja); 
+        } catch (e) { alert("❌ Error de conexión."); ocultarCarga(); } 
+    }
+
+    async function borrarRegistro(id, hoja) {
+        if(!confirm("⚠️ ¿Confirmás que querés eliminar este registro para siempre?")) return;
+        mostrarCarga("Eliminando de la base de datos...");
+        try {
+            await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', hoja: hoja, id: id }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+            cargarYRenderizarTabla(hoja);
+        } catch (e) { alert("❌ Error al eliminar."); ocultarCarga(); } 
+    }
+
+    // --- CARGA DE DATOS DE TABLAS INDIVIDUALES ---
+    async function cargarYRenderizarTabla(hoja) {
+        const tbody = document.getElementById(`tabla_${hoja}`);
+        let colCount = hoja === 'Mantenimiento' ? 8 : (hoja === 'VTV_Documentacion' ? 7 : 5);
+        tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm text-primary"></div> Cargando datos...</td></tr>`;
+        
+        try {
+            const resp = await fetch(`${GAS_URL}?hoja=${hoja}`);
+            let datos = await resp.json();
+            
+            datos.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
+            dataGlobal[hoja] = datos;
+            paginas[hoja] = 1; filtros[hoja] = ''; 
+
+            actualizarDesplegableFiltros(hoja);
+            renderizarTabla(hoja);
+        } catch (e) { tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-danger text-center py-4">Error de conexión.</td></tr>`; }
+        finally { ocultarCarga(); } // Se asegura de ocultar la pantalla de guardado
+    }
+
+    function actualizarDesplegableFiltros(hoja) {
+        const select = document.getElementById(`filtro_${hoja}`);
+        const categoriasUnicas = [...new Set(dataGlobal[hoja].map(item => item.Categoría))].filter(Boolean).sort();
+        select.innerHTML = '<option value="">Todas</option>';
+        categoriasUnicas.forEach(cat => { select.innerHTML += `<option value="${cat}">${conEmoji(cat)}</option>`; });
+        select.value = filtros[hoja];
+    }
+
+    function aplicarFiltro(hoja) { filtros[hoja] = document.getElementById(`filtro_${hoja}`).value; paginas[hoja] = 1; renderizarTabla(hoja); }
+
+    function cambiarPagina(hoja, direccion) {
+        const datosFiltrados = dataGlobal[hoja].filter(item => filtros[hoja] === '' || item.Categoría === filtros[hoja]);
+        const totalPaginas = Math.ceil(datosFiltrados.length / ITEMS_POR_PAGINA) || 1;
+        let nuevaPagina = paginas[hoja] + direccion;
+        if(nuevaPagina >= 1 && nuevaPagina <= totalPaginas) { paginas[hoja] = nuevaPagina; renderizarTabla(hoja); }
+    }
+
+    function renderizarTabla(hoja) {
+        const tbody = document.getElementById(`tabla_${hoja}`);
+        let colCount = hoja === 'Mantenimiento' ? 8 : (hoja === 'VTV_Documentacion' ? 7 : 5);
+        tbody.innerHTML = '';
+
+        const datosFiltrados = dataGlobal[hoja].filter(item => filtros[hoja] === '' || item.Categoría === filtros[hoja]);
+        const totalPaginas = Math.ceil(datosFiltrados.length / ITEMS_POR_PAGINA) || 1;
+        const start = (paginas[hoja] - 1) * ITEMS_POR_PAGINA;
+        const end = start + ITEMS_POR_PAGINA;
+        
+        document.getElementById(`pageInfo_${hoja}`).innerText = `Pág ${paginas[hoja]} / ${totalPaginas}`;
+        const datosPagina = datosFiltrados.slice(start, end);
+
+        if(datosPagina.length === 0) { tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center text-muted py-4">No hay registros que mostrar.</td></tr>`; return; }
+
+        datosPagina.forEach(fila => {
+            const tr = document.createElement('tr');
+            const btnX = `<button class="btn-delete" onclick="borrarRegistro('${fila.ID_Servicio}', '${hoja}')" title="Eliminar">🗑️</button>`;
+            
+            if(hoja === 'Mantenimiento') {
+                tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td class="fw-bold text-light">${conEmoji(fila.Categoría)}</td><td class="text-muted small">${fila.SubCategoria}</td><td>${fila.Km}</td><td><span class="badge" style="background: rgba(59,130,246,0.2); color: #93c5fd;">${fila.Prox_Rev_Km || '-'}</span></td><td><span class="badge" style="background: rgba(245,158,11,0.2); color: #fcd34d;">${formatearFecha(fila.Prox_Rev_Fecha)}</span></td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td class="text-end">${btnX}</td>`;
+            } else if(hoja === 'Gastos_Corrientes') {
+                tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td class="text-light">${conEmoji(fila.Categoría)}</td><td class="text-muted small">${fila.SubCategoria}</td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td class="text-end">${btnX}</td>`;
+            } else if(hoja === 'VTV_Documentacion') {
+                const colorRes = fila.Resultado === 'Aprobado' ? 'text-success' : (fila.Resultado === 'Rechazado' ? 'text-danger' : 'text-warning');
+                tr.innerHTML = `<td>${formatearFecha(fila.Fecha)}</td><td class="text-light">${conEmoji(fila.Categoría)}</td><td class="fw-bold ${colorRes}">${fila.Resultado}</td><td class="text-danger fw-bold">${formatearFecha(fila.Prox_Rev_Fecha)}</td><td class="text-muted">${fila.Km || '-'}</td><td><strong class="text-success">${formatPlata(fila.Costo)}</strong></td><td class="text-end">${btnX}</td>`;
+            }
+            tbody.appendChild(tr);
+        });
+    }
+
+    // --- LÓGICA DASHBOARD ---
+    async function cargarResumenDashboard() {
+        try {
+            const [reqM, reqG, reqV] = await Promise.all([ fetch(`${GAS_URL}?hoja=Mantenimiento`), fetch(`${GAS_URL}?hoja=Gastos_Corrientes`), fetch(`${GAS_URL}?hoja=VTV_Documentacion`) ]);
+            
+            let dataM = await reqM.json(); dataM.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
+            let dataG = await reqG.json(); dataG.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
+            let dataV = await reqV.json(); dataV.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
+            
+            calcularMetricas(dataM, dataG, dataV);
+            generarGraficoYTabla(dataM, dataG, dataV);
+
+            // Mini lista últimos gastos
+            const armarMini = (arr) => arr.length === 0 ? '<p class="text-muted small">Sin registros</p>' : arr.map(i => `<div class="mb-2 pb-2" style="border-bottom: 1px solid var(--border-subtle);"><strong class="text-light small">${conEmoji(i.Categoría)}</strong> <br><span class="text-muted" style="font-size: 0.7rem;">🗓️ ${formatearFecha(i.Fecha)} <span class="float-end text-success fw-bold">${formatPlata(i.Costo)}</span></span></div>`).join('');
+            
+            document.getElementById('dashboardCards').innerHTML = `
+                <div class="col-md-4 mb-3"><div class="card h-100 p-3"><h6 class="text-info fw-bold mb-3 small">MANTENIMIENTOS</h6>${armarMini(dataM.slice(0, 3))}</div></div>
+                <div class="col-md-4 mb-3"><div class="card h-100 p-3"><h6 class="text-success fw-bold mb-3 small">GASTOS CORRIENTES</h6>${armarMini(dataG.slice(0, 3))}</div></div>
+                <div class="col-md-4 mb-3"><div class="card h-100 p-3"><h6 class="text-danger fw-bold mb-3 small">VTV / DOCUMENTACIÓN</h6>${armarMini(dataV.slice(0, 3))}</div></div>
+            `;
+        } catch (e) { 
+            console.error("Error al cargar dashboard:", e);
+            document.getElementById('kpiContainer').innerHTML = `<div class="col-12"><div class="alert alert-danger" style="background: rgba(239,68,68,0.1); border-color: #ef4444; color: #fca5a5;">⚠️ Error de conexión con Google Sheets. Verificá la URL o los permisos del script.</div></div>`;
+        } finally { ocultarCarga(); }
+    }
+
+    function calcularMetricas(dataM, dataG, dataV) {
+        let totalCombus3m = 0, totalFijos3m = 0, total3m = 0, totalMesActual = 0;
+        let mesesUnicos = new Set();
+        
+        const hoy = new Date(); hoy.setHours(0,0,0,0);
+        const mesActual = hoy.getMonth(); const anioActual = hoy.getFullYear();
+        const hace90Dias = new Date(hoy); hace90Dias.setDate(hoy.getDate() - 90);
+
+        const procesar = (item, tipo) => {
+            const costo = parseFloat(item.Costo) || 0;
+            const d = parseLocalDate(item.Fecha);
+            if(costo > 0 && d) {
+                if(d.getMonth() === mesActual && d.getFullYear() === anioActual) totalMesActual += costo;
+                if (d >= hace90Dias && d <= hoy) {
+                    mesesUnicos.add(`${d.getMonth()}-${d.getFullYear()}`);
+                    total3m += costo;
+                    if(tipo === 'Combus') totalCombus3m += costo; else if(tipo === 'Fijo') totalFijos3m += costo; 
+                }
+            }
+        };
+
+        dataM.forEach(i => procesar(i, 'Manto')); dataV.forEach(i => procesar(i, 'Fijo'));
+        dataG.forEach(i => procesar(i, i.Categoría === 'Combustible' ? 'Combus' : 'Fijo'));
+
+        let divisor = Math.max(1, mesesUnicos.size); divisor = Math.min(3, divisor);
+
+        document.getElementById('kpiContainer').innerHTML = `
+            <div class="col-6 col-md-3 mb-3"><div class="card kpi-card p-3 h-100" style="border-color: rgba(59, 130, 246, 0.4);"><div class="kpi-label text-info">Gasto Este Mes</div><div class="kpi-value text-white">${formatPlata(totalMesActual)}</div></div></div>
+            <div class="col-6 col-md-3 mb-3"><div class="card kpi-card p-3 h-100"><div class="kpi-label">Prom. Total (Últ 3m)</div><div class="kpi-value text-white">${formatPlata(total3m / divisor)}</div></div></div>
+            <div class="col-6 col-md-3 mb-3"><div class="card kpi-card p-3 h-100"><div class="kpi-label">⛽ Prom. Combus. (3m)</div><div class="kpi-value text-white">${formatPlata(totalCombus3m / divisor)}</div></div></div>
+            <div class="col-6 col-md-3 mb-3"><div class="card kpi-card p-3 h-100"><div class="kpi-label">🛡️ Prom. Fijos (3m)</div><div class="kpi-value text-white">${formatPlata(totalFijos3m / divisor)}</div></div></div>
+        `;
+    }
+
+    function generarGraficoYTabla(dataM, dataG, dataV) {
+        const agrupar = {};
+        const procesarData = (array, categoriaLlave, esCombustible = false) => {
+            array.forEach(item => {
+                const mes = extraerMesAnio(item.Fecha); const costo = parseFloat(item.Costo) || 0;
+                if(mes && costo > 0) {
+                    if(!agrupar[mes]) agrupar[mes] = { manto: 0, gastos: 0, combus: 0, vtv: 0, total: 0, fData: parseLocalDate(item.Fecha), items: [] };
+                    
+                    if(esCombustible && item.Categoría === 'Combustible') agrupar[mes].combus += costo;
+                    else if (esCombustible && item.Categoría !== 'Combustible') agrupar[mes].gastos += costo;
+                    else agrupar[mes][categoriaLlave] += costo;
+                    
+                    agrupar[mes].total += costo; agrupar[mes].items.push(item);
+                }
+            });
+        };
+
+        procesarData(dataM, 'manto'); procesarData(dataG, 'gastos', true); procesarData(dataV, 'vtv');
+        const mesesOrdenados = Object.keys(agrupar).sort((a, b) => agrupar[a].fData - agrupar[b].fData);
+        
+        const ctx = document.getElementById('costosChart').getContext('2d');
+        if (miGrafico) miGrafico.destroy(); 
+        miGrafico = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: mesesOrdenados,
+                datasets: [
+                    { label: 'Gastos Fijos', data: mesesOrdenados.map(m => agrupar[m].gastos), backgroundColor: 'rgba(129, 199, 132, 0.1)', borderColor: '#81c784', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 1, pointHoverRadius: 4 },
+                    { label: 'Combustible', data: mesesOrdenados.map(m => agrupar[m].combus), backgroundColor: 'rgba(255, 213, 79, 0.1)', borderColor: '#ffd54f', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 1, pointHoverRadius: 4 },
+                    { label: 'Mantenimiento', data: mesesOrdenados.map(m => agrupar[m].manto), backgroundColor: 'rgba(100, 181, 246, 0.1)', borderColor: '#64b5f6', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 1, pointHoverRadius: 4 },
+                    { label: 'VTV y Doc', data: mesesOrdenados.map(m => agrupar[m].vtv), backgroundColor: 'rgba(229, 115, 115, 0.1)', borderColor: '#e57373', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 1, pointHoverRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, color: '#a1a1aa',
+                plugins: { tooltip: { mode: 'index', intersect: false, callbacks: { label: function(c) { return c.dataset.label + ': $' + c.parsed.y.toLocaleString('es-AR'); } } }, legend: { labels: { color: '#e4e4e7', font: { family: 'Inter' }, usePointStyle: true, boxWidth: 8 } } },
+                scales: { x: { grid: { display: false }, ticks: { color: '#a1a1aa', font: { family: 'Inter' } } }, y: { stacked: true, beginAtZero: true, grid: { color: '#27272a' }, ticks: { color: '#a1a1aa', font: { family: 'Inter' }, callback: function(v) { return '$' + v.toLocaleString('es-AR'); } } } }
+            }
+        });
+
+        // Generar tabla acordeón
+        const mesesRecientes = [...mesesOrdenados].reverse();
+        const tbodyTotales = document.getElementById('tablaTotalesMensuales');
+        tbodyTotales.innerHTML = '';
+        
+        if(mesesRecientes.length === 0) { tbodyTotales.innerHTML = '<tr><td colspan="2" class="text-center text-muted p-4">Aún no hay gastos registrados</td></tr>'; return; }
+
+        const totalesPorAnio = {};
+        mesesRecientes.forEach(mes => {
+            let year = mes.split(' ')[1];
+            if(!totalesPorAnio[year]) totalesPorAnio[year] = 0;
+            totalesPorAnio[year] += agrupar[mes].total;
+        });
+
+        let currentYear = '';
+        mesesRecientes.forEach((mes, index) => {
+            let year = mes.split(' ')[1]; let justMonth = mes.split(' ')[0];
+            
+            if (year !== currentYear) {
+                tbodyTotales.innerHTML += `<tr style="background: var(--bg-main);"><td class="fw-bold text-info py-2 ps-3">📅 ${year}</td><td class="text-end fw-bold text-info py-2 pe-3">${formatPlata(totalesPorAnio[year])}</td></tr>`;
+                currentYear = year;
+            }
+            
+            tbodyTotales.innerHTML += `<tr class="clickable-row" onclick="toggleDetalleMes('${index}')"><td class="text-light ps-4"><span id="icon-${index}" style="font-size: 0.6rem; margin-right: 8px;">▶️</span> ${justMonth}</td><td class="text-end text-success pe-3">${formatPlata(agrupar[mes].total)}</td></tr>`;
+                
+            let itemsOrdenados = agrupar[mes].items.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
+            let htmlDetalle = `<tr id="detalle-${index}" class="sub-table-row" style="display: none;"><td colspan="2" class="p-0 border-0"><table class="table sub-table table-borderless w-100 m-0"><tbody>`;
+            
+            itemsOrdenados.forEach(item => {
+                let fechaCorta = formatearFecha(item.Fecha).substring(0,5); 
+                let desc = item.SubCategoria ? `<br><span style="font-size: 0.7rem; color: #71717a;">${item.SubCategoria}</span>` : '';
+                htmlDetalle += `<tr><td style="width: 20%;" class="ps-4 text-muted">${fechaCorta}</td><td style="width: 50%; color: #d4d4d8;">${conEmoji(item.Categoría)}${desc}</td><td style="width: 30%;" class="text-end text-muted pe-3">${formatPlata(item.Costo)}</td></tr>`;
+            });
+            htmlDetalle += `</tbody></table></td></tr>`;
+            tbodyTotales.innerHTML += htmlDetalle;
+        });
+    }
+
+    // --- ALERTAS ---
+    async function analizarAlertas(forzarActualizacion = true) {
+        const kmInput = document.getElementById('kmInput').value;
+        if(forzarActualizacion) {
+            if(!kmInput) return alert("Ingresá el kilometraje actual.");
+            localStorage.setItem('ultimoKm', kmInput); document.getElementById('ultimoKmGuardado').innerText = kmInput;
+        }
+        if(!kmInput) return;
+
+        const box = document.getElementById('alertasBox');
+        box.innerHTML = '<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+
+        try {
+            const [reqM, reqV] = await Promise.all([ fetch(`${GAS_URL}?hoja=Mantenimiento`), fetch(`${GAS_URL}?hoja=VTV_Documentacion`) ]);
+            let dataM = await reqM.json(); let dataV = await reqV.json();
+            
+            dataM.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha)); dataV.sort((a,b) => getSafeDate(b.Fecha) - getSafeDate(a.Fecha));
+            const ultimosM = {}; dataM.forEach(item => { if(!ultimosM[item.Categoría]) ultimosM[item.Categoría] = item; });
+            const ultimosV = {}; dataV.forEach(item => { if(!ultimosV[item.Categoría]) ultimosV[item.Categoría] = item; });
+
+            let alertasHTML = ""; const hoy = new Date();
+
+            Object.values(ultimosM).forEach(item => {
+                if(item.Prox_Rev_Km) {
+                    const diffKm = parseInt(item.Prox_Rev_Km) - parseInt(kmInput);
+                    if(diffKm <= 0) alertasHTML += `<div class="alert shadow-sm border-0" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3)!important; color: #fca5a5;">🚨 <strong>KM VENCIDO:</strong> ${item.Categoría} (${item.SubCategoria}) debió hacerse a los ${item.Prox_Rev_Km} km.</div>`;
+                    else if(diffKm <= 1500) alertasHTML += `<div class="alert shadow-sm border-0" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3)!important; color: #fcd34d;">⚠️ <strong>PRÓXIMO POR KM:</strong> ${item.Categoría} toca en ${diffKm} km.</div>`;
+                }
+                if(item.Prox_Rev_Fecha) {
+                    const fRev = parseLocalDate(item.Prox_Rev_Fecha); const diffDias = Math.ceil((fRev - hoy) / (1000 * 60 * 60 * 24));
+                    if(diffDias < 0) alertasHTML += `<div class="alert shadow-sm border-0" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3)!important; color: #fca5a5;">⏰ <strong>FECHA VENCIDA:</strong> ${item.Categoría} venció el ${formatearFecha(item.Prox_Rev_Fecha)}.</div>`;
+                    else if(diffDias <= 30) alertasHTML += `<div class="alert shadow-sm border-0" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3)!important; color: #fcd34d;">📅 <strong>PRÓXIMO POR FECHA:</strong> ${item.Categoría} vence en ${diffDias} días.</div>`;
+                }
+            });
+
+            Object.values(ultimosV).forEach(item => {
+                if(item.Prox_Rev_Fecha) {
+                    const fRev = parseLocalDate(item.Prox_Rev_Fecha); const diffDias = Math.ceil((fRev - hoy) / (1000 * 60 * 60 * 24));
+                    if(diffDias < 0) alertasHTML += `<div class="alert shadow-sm border-0" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3)!important; color: #fca5a5;">🚓 <strong>VTV VENCIDA:</strong> Venció el ${formatearFecha(item.Prox_Rev_Fecha)}.</div>`;
+                    else if(diffDias <= 30) alertasHTML += `<div class="alert shadow-sm border-0" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3)!important; color: #fcd34d;">📄 <strong>VTV PRÓXIMA:</strong> Vence en ${diffDias} días.</div>`;
+                }
+            });
+
+            box.innerHTML = alertasHTML || `<div class="alert shadow-sm border-0 text-light" style="background-color: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3) !important; color: #86efac !important;">✅ <strong>¡Todo al día!</strong> No hay alertas de KM ni de Fechas en tu Argo.</div>`;
+        } catch (e) { box.innerHTML = '<div class="alert alert-danger border-0">Error de lectura de datos.</div>'; }
     }
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
