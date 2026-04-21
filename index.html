@@ -121,9 +121,12 @@
         
         .chart-container { position: relative; height: 300px; width: 100%; }
 
+        /* FIX: Quitamos d-flex del HTML y lo forzamos acá en CSS solo cuando JS lo pide */
         #loadingOverlay { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            display: none; 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.85); z-index: 2000; backdrop-filter: blur(8px);
+            flex-direction: column; justify-content: center; align-items: center;
         }
 
         @media (max-width: 768px) {
@@ -135,7 +138,7 @@
 </head>
 <body>
 
-<div id="loadingOverlay" class="d-flex flex-column justify-content-center align-items-center">
+<div id="loadingOverlay">
     <div class="spinner-border text-primary" role="status"></div>
     <p class="mt-3 fw-medium text-light" id="loadingText">Sincronizando datos...</p>
 </div>
@@ -381,6 +384,9 @@
     let filtros = { 'Mantenimiento': '', 'Gastos_Corrientes': '', 'VTV_Documentacion': '' };
 
     window.onload = () => { 
+        // Mostrar carga de inmediato al abrir la web
+        mostrarCarga("Sincronizando con Google Sheets...");
+        
         const kmGuardado = localStorage.getItem('ultimoKm');
         if(kmGuardado) {
             document.getElementById('ultimoKmGuardado').innerText = kmGuardado;
@@ -392,9 +398,12 @@
 
     function mostrarCarga(txt) { 
         document.getElementById('loadingText').innerText = txt || "Sincronizando datos..."; 
+        // Cambiado a flex porque quitamos d-flex de HTML
         document.getElementById('loadingOverlay').style.display = 'flex'; 
     }
-    function ocultarCarga() { document.getElementById('loadingOverlay').style.display = 'none'; }
+    function ocultarCarga() { 
+        document.getElementById('loadingOverlay').style.display = 'none'; 
+    }
 
     function conEmoji(cat) {
         const mapas = {
@@ -487,6 +496,7 @@
         const tbody = document.getElementById(`tabla_${hoja}`);
         let colCount = hoja === 'Mantenimiento' ? 8 : (hoja === 'VTV_Documentacion' ? 7 : 5);
         tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm text-primary"></div> Cargando datos...</td></tr>`;
+        mostrarCarga("Actualizando tabla...");
         
         try {
             const resp = await fetch(`${GAS_URL}?hoja=${hoja}`);
@@ -499,7 +509,7 @@
             actualizarDesplegableFiltros(hoja);
             renderizarTabla(hoja);
         } catch (e) { tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-danger text-center py-4">Error de conexión.</td></tr>`; }
-        finally { ocultarCarga(); } // Se asegura de ocultar la pantalla de guardado
+        finally { ocultarCarga(); } 
     }
 
     function actualizarDesplegableFiltros(hoja) {
